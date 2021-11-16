@@ -1,0 +1,9 @@
+pony
+fastapi
+pydantic[email]
+uvicorn
+gunicorn
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+python-dotenv
