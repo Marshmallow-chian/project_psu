@@ -1,6 +1,6 @@
 pony
 fastapi
-pydantic[email]
+pydantic
 uvicorn
 gunicorn
 python-jose[cryptography]
