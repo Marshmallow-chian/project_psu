@@ -1,0 +1,840 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "MentorsBlog",
+    "contact": {
+      "name": "Denis Chervinskiy",
+      "url": "https://vk.com/bluesy_fluesy",
+      "email": ""
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/comments": {
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Creating a comment",
+        "description": "Sample request:\r\n            \r\n    POST /comments\r\n    {\r\n       \"PostId\": \"13497b8d-3588-4826-9f87-d5ef0bdb5644\"\r\n       \"ParentId\": null,\r\n       \"Preview\": \"Anon without tyan 228\",\r\n       \"Body\": \"I'm first!\"\r\n    }",
+        "requestBody": {
+          "description": "Incoming data for creating a comment",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateComment"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateComment"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateComment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the id of the created post",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to create comment"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Get comments by post",
+        "description": "Sample request:\r\n            \r\n    GET /comments?postId=c191c67b-7450-414d-8c8d-98efbd90dc59",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "query",
+            "description": "Post id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Post id",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comments/{id}": {
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Deleting a comment by id",
+        "description": "Sample request:\r\n            \r\n    DELETE /comments/f63225fb-cb9c-45d6-a750-901a47ab980c",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Comment id to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Comment id to delete",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT access token",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the result success of execute",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid comment id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to delete comment"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/post": {
+      "post": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Creating a post",
+        "description": "Sample request:\r\n            \r\n    POST /post\r\n    {\r\n       \"Title\": \"How create post?\",\r\n       \"Preview\": \"This is the body\",\r\n       \"Body\": \"This is the body of the post\"\r\n    }",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT access token",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "Incoming data for creating a post",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreatePost"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreatePost"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreatePost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Returns the id of the created post",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to create post"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Get posts by pagination",
+        "description": "Sample request:\r\n            \r\n    GET /post?page=1&count5",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Page",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "description": "Count of posts",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Count of posts",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of posts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/post/search": {
+      "get": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Search for posts",
+        "description": "Sample request:\r\n            \r\n    GET /post/search?searchData=Text",
+        "parameters": [
+          {
+            "name": "searchData",
+            "in": "query",
+            "description": "Search data",
+            "schema": {
+              "type": "string",
+              "description": "Search data",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of found posts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/post/{id}": {
+      "get": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Get post by id",
+        "description": "Sample request:\r\n            \r\n    GET /post/f63225fb-cb9c-45d6-a750-901a47ab980c",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post Id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Post Id",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a post find by id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not fount post by id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Updating a post by id",
+        "description": "Sample request:\r\n            \r\n    PUT /post/f63225fb-cb9c-45d6-a750-901a47ab980c",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post id to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Post id to update",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT access token",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "description": "Incoming data for update",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestUpdatePost"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestUpdatePost"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestUpdatePost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns updated post",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to update post"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Post"
+        ],
+        "summary": "Deleting a post by id",
+        "description": "Sample request:\r\n            \r\n    DELETE /post/f63225fb-cb9c-45d6-a750-901a47ab980c",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post id to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Post id to delete",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT access token",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the result success of execute"
+          },
+          "400": {
+            "description": "Invalid post id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to delete post"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/api/v1/user/auth": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Authorize in account",
+        "description": "Sample request:\r\n            \r\n    POST /user/auth\r\n    {\r\n       \"Nickname\": \"admin\",\r\n       \"Password\": \"admin\"\r\n    }",
+        "requestBody": {
+          "description": "Incoming data for authorize",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestAuthorize"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestAuthorize"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestAuthorize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RequestCreateComment": {
+        "required": [
+          "message",
+          "nickname"
+        ],
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "string",
+            "description": "A post containing this comment",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "Id of the parent comment",
+            "format": "uuid",
+            "nullable": true
+          },
+          "nickname": {
+            "maxLength": 100,
+            "type": "string",
+            "description": "Anonymous nickname"
+          },
+          "message": {
+            "maxLength": 993,
+            "type": "string",
+            "description": "Comment message"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Comment id",
+            "format": "uuid"
+          },
+          "postId": {
+            "type": "string",
+            "description": "A post containing this comment",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "description": "Id of the parent comment",
+            "format": "uuid",
+            "nullable": true
+          },
+          "nickname": {
+            "type": "string",
+            "description": "Anonymous nickname",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Comment message",
+            "nullable": true
+          },
+          "createDate": {
+            "type": "string",
+            "description": "Date the comment was created",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "RequestCreatePost": {
+        "required": [
+          "body",
+          "preview",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Title of the post"
+          },
+          "preview": {
+            "maxLength": 2000,
+            "type": "string",
+            "description": "Preview of the post"
+          },
+          "body": {
+            "maxLength": 20000,
+            "type": "string",
+            "description": "The content of the post"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PostResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Post id",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the post",
+            "nullable": true
+          },
+          "preview": {
+            "type": "string",
+            "description": "Preview of the post",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "description": "The content of the post",
+            "nullable": true
+          },
+          "publishDate": {
+            "type": "string",
+            "description": "Date the post was created",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestUpdatePost": {
+        "required": [
+          "body",
+          "preview",
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 200,
+            "type": "string",
+            "description": "Title of the post"
+          },
+          "preview": {
+            "maxLength": 2000,
+            "type": "string",
+            "description": "Preview of the post"
+          },
+          "body": {
+            "maxLength": 20000,
+            "type": "string",
+            "description": "The content of the post"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestAuthorize": {
+        "required": [
+          "nickname",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Account nickname"
+          },
+          "password": {
+            "maxLength": 255,
+            "type": "string",
+            "description": "Account password"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "description": "JWT Authorization header using the Bearer scheme.",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

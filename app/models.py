@@ -30,3 +30,5 @@ class Comment(db.Entity):
     message = Required(str, 993)
     createDate = Required(datetime, precision=0, default=lambda: datetime.now())
     post = Required(Post)
+    comments = Set('Comment', reverse='comment')
+    comment = Optional('Comment', reverse='comments')

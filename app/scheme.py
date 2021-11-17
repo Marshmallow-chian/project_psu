@@ -1,29 +1,24 @@
-from typing import Optional
 from pydantic import BaseModel, validator, Field
 from typing_extensions import Annotated
-from uuid import uuid4
+from uuid import UUID
 from datetime import datetime
 
 
 class RequestCreateComment(BaseModel):
-    postId: Annotated[str]
-    parentId: Annotated[str,  Field(default_factory=None)]
+    postId: UUID
+    parentId: UUID
     nickname: Annotated[str, Field(max_length=100)] = 'nickname'
     message:  Annotated[str, Field(max_length=993)] = 'massage'
 
 
 class PostIdForCommentsResponse(BaseModel):
-    id: Annotated[str]
-
-
-class ParentIdForCommentsResponse(BaseModel):
-    id: Annotated[str]
+    id: UUID
 
 
 class CommentResponse(BaseModel):
-    id: Annotated[str]
+    id: UUID
     postId: PostIdForCommentsResponse
-    parentId: Annotated[str, Field(default_factory=None)]  # комментарий родитель (тот кому ответили) null - комент первого уровня
+    parentId: Annotated[UUID, Field(default_factory=None)]  # комментарий родитель (тот кому ответили) null - комент первого уровня
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
     createDate: datetime
@@ -46,7 +41,7 @@ class RequestCreatePost(BaseModel):
 
 
 class PostResponse(BaseModel):
-    id: Annotated[str]
+    id: UUID
     title: Annotated[str, Field(nullable=True)] = 'title'
     preview: Annotated[str, Field(nullable=True)] = 'preview'
     body: Annotated[str, Field(nullable=True)] = 'body'
