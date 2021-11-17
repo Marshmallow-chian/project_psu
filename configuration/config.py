@@ -11,7 +11,7 @@ def author():
 
     author_login = os.getenv("AUTHOR_LOGIN")
     author_hashed_password = get_password_hash(os.getenv("AUTHOR_PASSWORD"))
-    _author = {'nickname': author_login, 'hashed_password': author_hashed_password}
+    _author = {'id': '4328c48a-4dd1-4dac-beed-f681f7c208b1', 'nickname': author_login, 'hashed_password': author_hashed_password}
     return _author
 
 

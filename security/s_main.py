@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 from security.s_scheme import TokenData
 from app.scheme import UserInDB
 from app.models import User
-from pydantic import ValidationError
 from pony.orm import db_session
 
 #  from main import SECRET_KEY
@@ -32,21 +31,31 @@ def get_password_hash(password):  # хэширует пароль
 
 def get_user(username: str) -> Union[UserInDB, str]:  # ------------
     with db_session:
+        print(User.exists(nickname=username))
+        print('я был в get_user')
         if User.exists(nickname=username):  # если юзер есть в бд, то выводим его
             user = User.get(nickname=username)
+            print('user')
             return UserInDB.from_orm(user)
         else:
+            print('нет юзера')
             return 'пользователя с таким именем не существует'
 
 
 def authenticate_user(username: str, password: str) -> Union[UserInDB, Literal[False]]:  # --------------
+    print(username, password, 's_main')
     user = get_user(username)
+    print(user)
     if isinstance(user, str):
+        print('isinstance')
         return False
     if not user:
+        print('not user')
         return False
     if not verify_password(password, user.hashed_password):
+        print('неправильный пароль')
         return False
+    print('OKKKK')
     return user
 
 

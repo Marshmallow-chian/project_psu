@@ -1,11 +1,11 @@
 import os.path
 import uvicorn
 from pony.orm import db_session, commit
-from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost)
+from models import db, User, Post, Comment
+from scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token)
-from app.scheme import (UserResponse)
+from scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
@@ -16,16 +16,13 @@ from uuid import UUID
 import uuid
 
 # использовать exception
-# TODO: add (Query)
-# TODO: add поле Authorization
-# TODO: Авторизация User OAuth2PasswordRequestForm -> RequestAuthorize
 
 
 app = FastAPI()
 my_db = 'Manufacturer_and_Products.sqlite'
 
 SECRET_KEY = secret_key()
-
+#print(uuid.uuid4())
 "4328c48a-4dd1-4dac-beed-f681f7c208b1"
 
 @app.on_event("startup")
@@ -43,7 +40,10 @@ async def start_app():
     if create_db is True:
         with db_session:
             if not User.exists(nickname=AUTHOR['nickname']):
+                print(User.get(nickname=AUTHOR['nickname']), '==================================')
                 User(**AUTHOR)
+                print(User.get(nickname=AUTHOR['nickname']), '==================================')
+                print(User.exists(nickname="Zefirka"), '==================================')
             commit()
 
 
@@ -61,7 +61,7 @@ def get_comments_by_post(id_post: UUID):
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Никита
-def deleting_a_comment_by_id(id: UUID, current_user: User = Depends(get_current_active_user)):
+def deleting_a_comment_by_id(id: UUID):
     return 'комент удалён'
 
 
@@ -69,7 +69,7 @@ def deleting_a_comment_by_id(id: UUID, current_user: User = Depends(get_current_
 
 
 @app.post("/api/v1/post", tags=['Post'])  # Максим
-def creating_a_post(post: RequestCreatePost = Body(...), current_user: User = Depends(get_current_active_user)):
+def creating_a_post(post: RequestCreatePost = Body(...)):
     return 'пост создан'
 
 
@@ -89,22 +89,22 @@ def get_post_by_id(id: UUID):
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
-def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...),
-                          current_user: User = Depends(get_current_active_user)):
+def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
     return 'пост изменён'
 
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Никита
-def deleting_a_post_by_id(id: UUID, current_user: User = Depends(get_current_active_user)):
+def deleting_a_post_by_id(id: UUID):
     return 'пост удалён'
 
 
 # ----------------------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/user/auth", response_model=Token, tags=['User'])
-async def authorize_in_account(form_data: OAuth2PasswordRequestForm = Depends()):
+@app.post("/token", response_model=Token, tags=['User'])
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
+        print(form_data.username, form_data.password, 'main')
         user = authenticate_user(form_data.username, form_data.password)
         if not user:
             raise HTTPException(
@@ -115,6 +115,13 @@ async def authorize_in_account(form_data: OAuth2PasswordRequestForm = Depends())
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
         access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
         return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get('/api/user', tags=['user'])
+async def get_all_users():  # любой
+    with db_session:
+        users = User.get(nickname='Zefirka')
+    return users
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ class CommentResponse(BaseModel):
 
 
 class RequestCreatePost(BaseModel):
-    title: Annotated[str, Field(max_length=200)] = 'title'
+    title: Annotated[str, Field(max_length=200)] = 'title for'
     preview: Annotated[str, Field(max_length=2000)] = 'preview'
     body: Annotated[str, Field(max_length=20000)] = 'body'
 
