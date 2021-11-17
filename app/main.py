@@ -19,7 +19,7 @@ import uuid
 
 
 app = FastAPI()
-my_db = 'Manufacturer_and_Products.sqlite'
+my_db = 'Comments_Post_User.sqlite'
 
 SECRET_KEY = secret_key()
 #print(uuid.uuid4())
