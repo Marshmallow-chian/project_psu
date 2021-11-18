@@ -1,8 +1,8 @@
 import os.path
 import uvicorn
 from pony.orm import db_session, commit
-from models import db, User, Post, Comment
-from scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.models import db, User, Post, Comment
+from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token)
 from scheme import (UserResponse)
@@ -41,9 +41,6 @@ async def start_app():
     if create_db is True:
         with db_session:
             name = AUTHOR['nickname']
-            print(name)
-            print(User.get(nickname=name))
-            print(User.exists(nickname=name))
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
             commit()
@@ -107,10 +104,6 @@ def deleting_a_post_by_id(id: UUID):
 @app.post("/token", response_model=Token, tags=['User'])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
-        name = form_data.username  # 'Zefirka'
-        print(name)
-        print(User.get(nickname=name))
-        print(User.exists(nickname=name))
         user = authenticate_user(form_data.username, form_data.password)  # UserInDB or False
         if not user:
             raise HTTPException(
@@ -123,11 +116,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get('/api/user', tags=['user'])
-async def get_all_users():  # любой
+@app.get('/api/user', tags=['User'])
+async def get_all_users(current_user: UserInDB = Depends(get_current_active_user)):  # любой
     with db_session:
-        users = User.get(nickname='Zefirka')
-    return users
+        users = User.select()  # преобразуем запрос в SQL, а затем отправим в базу данных4
+        all_users = []
+        for i in users:
+            all_users.append(UserResponse.from_orm(i))
+        print(all_users)
+    return all_users
 
 
 if __name__ == "__main__":

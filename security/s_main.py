@@ -26,11 +26,6 @@ def get_password_hash(password):  # хэширует пароль
 
 def get_user(user_name: str) -> Union[UserInDB, str]:  # ------------
     with db_session:
-        print('get_user')
-        name = user_name  # 'Zefirka'
-        print(name)
-        print(User.get(nickname=name))
-        print(User.exists(nickname=name))
         if User.exists(nickname=user_name):  # если юзер есть в бд, то выводим его
             user = User.get(nickname=user_name)
             return UserInDB.from_orm(user)
@@ -78,7 +73,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(name=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(token_data.username)
+    user = get_user(token_data.name)
     if user is None:
         raise credentials_exception
     return user
