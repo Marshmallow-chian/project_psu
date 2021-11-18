@@ -8,12 +8,12 @@ from security.s_main import (get_current_active_user,
 from scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path
 import os
 from configuration.config import secret_key, author
 from uuid import UUID
-import uuid
+
 
 # использовать exception
 
@@ -22,8 +22,9 @@ app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
 SECRET_KEY = secret_key()
-#print(uuid.uuid4())
+# print(uuid.uuid4())
 "4328c48a-4dd1-4dac-beed-f681f7c208b1"
+
 
 @app.on_event("startup")
 async def start_app():
@@ -32,18 +33,19 @@ async def start_app():
     # нам нужно подключиться, чтобы установить соединение с ней.
     # Это можно сделать с помощью метода bind()
     create_db = True
-    if os.path.isfile(my_db):
-        create_db = False
+    '''if os.path.isfile(my_db):
+        create_db = False'''
     db.bind(provider='sqlite', filename=my_db, create_db=create_db)
     db.generate_mapping(create_tables=create_db)
     AUTHOR = author()
     if create_db is True:
         with db_session:
+            name = AUTHOR['nickname']
+            print(name)
+            print(User.get(nickname=name))
+            print(User.exists(nickname=name))
             if not User.exists(nickname=AUTHOR['nickname']):
-                print(User.get(nickname=AUTHOR['nickname']), '==================================')
                 User(**AUTHOR)
-                print(User.get(nickname=AUTHOR['nickname']), '==================================')
-                print(User.exists(nickname="Zefirka"), '==================================')
             commit()
 
 
@@ -51,7 +53,8 @@ async def start_app():
 
 
 @app.post("/api/v1/comments", tags=['Comments'])  # Максим
-def creating_a_post(comment: RequestCreateComment = Body(...)):
+def creating_a_post(comment: RequestCreateComment = Body(...),
+                    current_user: UserInDB = Depends(get_current_active_user)):
     return 'коммент создан'
 
 
@@ -104,8 +107,11 @@ def deleting_a_post_by_id(id: UUID):
 @app.post("/token", response_model=Token, tags=['User'])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
-        print(form_data.username, form_data.password, 'main')
-        user = authenticate_user(form_data.username, form_data.password)
+        name = form_data.username  # 'Zefirka'
+        print(name)
+        print(User.get(nickname=name))
+        print(User.exists(nickname=name))
+        user = authenticate_user(form_data.username, form_data.password)  # UserInDB or False
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
