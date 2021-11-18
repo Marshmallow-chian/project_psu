@@ -1,10 +1,12 @@
 import os.path
+import uuid
+
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
 from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
-                             ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token)
+                             ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta
@@ -12,7 +14,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path
 import os
 from configuration.config import secret_key, author
-from uuid import UUID
+from uuid import UUID, uuid4
 
 
 # использовать exception
@@ -41,13 +43,21 @@ async def start_app():
     if create_db is True:
         with db_session:
             name = AUTHOR['nickname']
+            print(User.get(nickname=AUTHOR['nickname']))
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
+            '''User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', password=get_password_hash('123'),
+                 post=Post[UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79')])
+            Post(id=Post[UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79')], title='Синий цвет',
+                 preview='Синий — наименование группы цветов. Спектральный синий цвет ощущается человеком под действием электромагнитного излучения с длинами волн в диапазоне 440—485 нм (иногда диапазон указывают шире — 420—490 нм). Один из основных цветов в системе КЗС',
+                 body='Синий — наименование группы цветов. Спектральный синий цвет ощущается человеком под действием электромагнитного излучения с длинами волн в диапазоне 440—485 нм (иногда диапазон указывают шире — 420—490 нм). Один из основных цветов в системе КЗС. Цвет неба кажется синим вследствие рэлеевского рассеивания солнечного света. Вода в толстом слое кажется синей из-за наличия в её спектре поглощения полосы с максимумом, расположенным около 750 нм. В то же время тяжёлая вода бесцветна, поскольку максимум аналогичной полосы поглощения сдвинут в длинноволновую сторону и находится вблизи 950 нм.',
+                 publishDate=, author=User[UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')])'''
+
             commit()
 
 
 # -----------------------------------------------------------------------------------------
-
+print(uuid.uuid4())
 
 @app.post("/api/v1/comments", tags=['Comments'])  # Максим
 def creating_a_post(comment: RequestCreateComment = Body(...),
@@ -96,7 +106,7 @@ def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Никита
 def deleting_a_post_by_id(id: UUID):
     with db_session:
-        if User[id].delete():  # test
+        if Post[id].delete():  # test
             commit()
             return "Пост удалён"
         return "производителя с таким id не существует"
