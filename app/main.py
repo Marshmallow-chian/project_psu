@@ -95,7 +95,11 @@ def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Никита
 def deleting_a_post_by_id(id: UUID):
-    return 'удалён'
+    with db_session:
+        if User[id].delete():  # test
+            commit()
+            return "Пост удалён"
+        return "производителя с таким id не существует"
 
 
 
