@@ -59,6 +59,7 @@ async def start_app():
 # -----------------------------------------------------------------------------------------
 print(uuid.uuid4())
 
+
 @app.post("/api/v1/comments", tags=['Comments'])  # Максим
 def creating_a_post(comment: RequestCreateComment = Body(...),
                     current_user: UserInDB = Depends(get_current_active_user)):
@@ -105,12 +106,7 @@ def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Никита
 def deleting_a_post_by_id(id: UUID):
-    with db_session:
-        if Post[id].delete():  # test
-            commit()
-            return "Пост удалён"
-        return "производителя с таким id не существует"
-
+    return 'удалено'
 
 
 # ----------------------------------------------------------------------------------------------------
