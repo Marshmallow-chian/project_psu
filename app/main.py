@@ -71,7 +71,7 @@ def get_comments_by_post(id_post: UUID):
     return 'коммент по посту'
 
 
-@app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Никита
+@app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
 def deleting_a_comment_by_id(id: UUID):
     with db_session:
         if Comment.exists(id=id):
