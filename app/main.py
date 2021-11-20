@@ -76,9 +76,10 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
         post_ = post.dict()
         post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
         post_['author'] = User.get(nickname=current_user.nickname)
-        Post(**post_)
+        new_post = Post(**post_)
         commit()
-        return post_
+        return new_post.to_dict()
+        # TODO: реализовать валидацию автора и поста через pydantic. Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
 
 
