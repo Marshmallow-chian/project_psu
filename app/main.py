@@ -58,15 +58,17 @@ async def start_app():
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/comments", tags=['Comments'])  # Максим
-def creating_a_post(comment: RequestCreateComment = Body(...),
+@app.post("/api/v1/comments", tags=['Comments'])  # Никита
+def creating_a_comment(id_post: UUID):
+    with db_session:
+        return 'коммент создан'
+
+
+@app.get("/api/v1/comments", tags=['Comments'])  # Максим
+def get_comments_by_post(comment: RequestCreateComment = Body(...),
                     current_user: UserInDB = Depends(get_current_active_user)):
-    return 'коммент создан'
-
-
-@app.get("/api/v1/comments", tags=['Comments'])  # Никита
-def get_comments_by_post(id_post: UUID):
-    return 'коммент по посту'
+    with db_session:
+        post = Post.select(lambda p: p.comments)
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
