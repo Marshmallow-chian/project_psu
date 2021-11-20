@@ -47,11 +47,15 @@ async def start_app():
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
                 User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
-
             commit()
 
 
 # -----------------------------------------------------------------------------------------
+
+@app.post("/api/v1/comments", tags=['Comments'])  # Максим
+def creating_a_post(comment: RequestCreateComment = Body(...),
+                    current_user: UserInDB = Depends(get_current_active_user)):
+    return 'коммент создан'
 
 
 @app.get("/api/v1/comments", tags=['Comments'])  # Никита
@@ -94,7 +98,10 @@ def search_for_posts(searchData: str):
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
-    return 'пост по id'
+    with db_session:
+        if Post.exists(id = Post.id):
+            response = Post.select(id = Post.id)
+    return
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
