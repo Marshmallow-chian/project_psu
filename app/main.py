@@ -1,6 +1,3 @@
-import os.path
-import uuid
-
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
@@ -10,21 +7,18 @@ from security.s_main import (get_current_active_user,
 from scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta, datetime
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
-import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
-
-# использовать exception
 
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
 SECRET_KEY = secret_key()
-# print(uuid.uuid4())
+
 "4328c48a-4dd1-4dac-beed-f681f7c208b1"
 
 
@@ -66,8 +60,7 @@ def get_comments_by_post(id_post: UUID):
             post = Post.get(id=id_post)
             return post.comments
         else:
-            return 'товара с таким id не существует'
-
+            return 'пост не найден'
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
@@ -92,7 +85,8 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
         new_post = Post(**post_)
         commit()
         return new_post.to_dict()
-        # TODO: реализовать валидацию автора и поста через pydantic. Сделать отдельную модель для выхода OutProduct и модель для базы данных.
+# TODO: реализовать валидацию автора и поста через pydantic.
+#  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
@@ -103,7 +97,6 @@ def get_posts_by_pagination(page: int, count: int):
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
 async def search_for_posts(searchData: str):
     with db_session:
-        # response = Post.select(p for p in Post if searchData in Post)
         response = Post.select(lambda p: searchData in p.title or searchData in p.body)
         all_response = []
         for i in response:
@@ -111,6 +104,7 @@ async def search_for_posts(searchData: str):
         # if bool(response) is False:
         #     return 'Нет такого слова на странице'
         return all_response
+# TODO: Добаить проверку на наличие слова в посте.
 
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
