@@ -99,7 +99,10 @@ def search_for_posts(searchData: str):
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
-    return 'пост по id'
+    with db_session:
+        if Post.exists(id = Post.id):
+            response = Post.select(id = Post.id)
+    return
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
