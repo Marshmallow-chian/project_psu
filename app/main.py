@@ -71,9 +71,14 @@ def get_comments_by_post(id_post: UUID):
     return 'коммент по посту'
 
 
-@app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Никита
+@app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
 def deleting_a_comment_by_id(id: UUID):
-    return 'комент удалён'
+    with db_session:
+        if Comment.exists(id=id):
+            Comment[id].delete()
+            commit()
+            return "Комментарий удалён"
+        return "Комментарий не найден"
 
 
 # -----------------------------------------------------------------------------------------
@@ -104,9 +109,14 @@ def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
     return 'пост изменён'
 
 
-@app.delete("/api/v1/post/{id}", tags=['Post'])  # Никита
+@app.delete("/api/v1/post/{id}", tags=['Post'])  # Настя
 def deleting_a_post_by_id(id: UUID):
-    return 'удалено'
+    with db_session:
+        if Post.exists(id=id):
+            Post[id].delete()
+            commit()
+            return "Пост удалён"
+        return "Пост не найден"
 
 
 # ----------------------------------------------------------------------------------------------------
