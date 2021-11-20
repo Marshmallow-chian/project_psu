@@ -9,9 +9,9 @@ from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
-from datetime import timedelta
+from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path
+from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
 import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
@@ -52,7 +52,6 @@ async def start_app():
 
 # -----------------------------------------------------------------------------------------
 
-
 @app.post("/api/v1/comments", tags=['Comments'])  # Максим
 def creating_a_post(comment: RequestCreateComment = Body(...),
                     current_user: UserInDB = Depends(get_current_active_user)):
@@ -75,11 +74,16 @@ def deleting_a_comment_by_id(id: UUID):
 
 
 # -----------------------------------------------------------------------------------------
-
-
 @app.post("/api/v1/post", tags=['Post'])  # Максим
-def creating_a_post(post: RequestCreatePost = Body(...)):
-    return 'пост создан'
+def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
+    with db_session:
+        post_ = post.dict()
+        post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
+        post_['author'] = User.get(nickname=current_user.nickname)
+        Post(**post_)
+        commit()
+        return post_
+
 
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
