@@ -15,7 +15,7 @@ from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path
 import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
-
+from datetime import datetime
 
 # использовать exception
 
@@ -43,21 +43,19 @@ async def start_app():
     if create_db is True:
         with db_session:
             name = AUTHOR['nickname']
-            print(User.get(nickname=AUTHOR['nickname']))
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
-            '''User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', password=get_password_hash('123'),
-                 post=Post[UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79')])
-            Post(id=Post[UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79')], title='Синий цвет',
-                 preview='Синий — наименование группы цветов. Спектральный синий цвет ощущается человеком под действием электромагнитного излучения с длинами волн в диапазоне 440—485 нм (иногда диапазон указывают шире — 420—490 нм). Один из основных цветов в системе КЗС',
-                 body='Синий — наименование группы цветов. Спектральный синий цвет ощущается человеком под действием электромагнитного излучения с длинами волн в диапазоне 440—485 нм (иногда диапазон указывают шире — 420—490 нм). Один из основных цветов в системе КЗС. Цвет неба кажется синим вследствие рэлеевского рассеивания солнечного света. Вода в толстом слое кажется синей из-за наличия в её спектре поглощения полосы с максимумом, расположенным около 750 нм. В то же время тяжёлая вода бесцветна, поскольку максимум аналогичной полосы поглощения сдвинут в длинноволновую сторону и находится вблизи 950 нм.',
-                 publishDate=, author=User[UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')])'''
-
+            if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
+                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
+                Post(id=UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79'),
+                     title='Синий цвет',
+                     preview='Синий — наименование группы цветов.',
+                     body='Синий — наименование группы цветов. Цвет неба кажется синим вследствие рэлеевского рассеивания солнечного света.',
+                     author=User[UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')])
             commit()
 
 
 # -----------------------------------------------------------------------------------------
-print(uuid.uuid4())
 
 
 @app.post("/api/v1/comments", tags=['Comments'])  # Максим
@@ -140,11 +138,13 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @app.get('/api/user', tags=['User'])
 async def get_all_users(current_user: UserInDB = Depends(get_current_active_user)):  # любой
     with db_session:
+        print(current_user)
+        user = User.get(nickname=current_user.nickname)
+        print(f'User: {user}')
         users = User.select()  # преобразуем запрос в SQL, а затем отправим в базу данных4
         all_users = []
         for i in users:
             all_users.append(UserResponse.from_orm(i))
-        print(all_users)
     return all_users
 
 

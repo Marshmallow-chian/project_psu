@@ -14,10 +14,10 @@ class User(db.Entity):
 
 class Post(db.Entity):
     id = PrimaryKey(UUID, auto=True)
-    title = Optional(str, 200)
-    preview = Optional(str, 2000)
-    body = Optional(str, 20000)
-    publishDate = Optional(datetime)
+    title = Required(str, 200)
+    preview = Required(str, 2000)
+    body = Required(str, 20000)
+    publishDate = Required(datetime)
     author = Required(User)
     comments = Set('Comment')
 
@@ -28,7 +28,7 @@ class Comment(db.Entity):
     parentId = Required(UUID, unique=True)  # id комментария
     nickname = Required(str, 100)
     message = Required(str, 993)
-    createDate = Required(datetime, precision=0, default=lambda: datetime.now())
+    createDate = Optional(datetime)
     post = Required(Post)
     comments = Set('Comment', reverse='comment')
     comment = Optional('Comment', reverse='comments')

@@ -80,5 +80,4 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):  # UserInDB
-    print(current_user)
     return current_user
