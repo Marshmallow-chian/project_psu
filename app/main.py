@@ -4,7 +4,7 @@ import uuid
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
@@ -47,11 +47,7 @@ async def start_app():
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
                 User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
-                Post(id=UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79'),
-                     title='Синий цвет',
-                     preview='Синий — наименование группы цветов.',
-                     body='Синий — наименование группы цветов. Цвет неба кажется синим вследствие рэлеевского рассеивания солнечного света.',
-                     author=User[UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')])
+
             commit()
 
 
@@ -59,16 +55,20 @@ async def start_app():
 
 
 @app.post("/api/v1/comments", tags=['Comments'])  # Никита
-def creating_a_comment(id_post: UUID):
+def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         return 'коммент создан'
 
 
-@app.get("/api/v1/comments", tags=['Comments'])  # Максим
-def get_comments_by_post(comment: RequestCreateComment = Body(...),
-                    current_user: UserInDB = Depends(get_current_active_user)):
+@app.get("/api/v1/comments", tags=['Comments'])  # Настя
+def get_comments_by_post(id_post: UUID):
     with db_session:
-        post = Post.select(lambda p: p.comments)
+        if Post.exists(id=id_post):
+            post = Post.get(id=id_post)
+            return post.comments
+        else:
+            return 'товара с таким id не существует'
+
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
