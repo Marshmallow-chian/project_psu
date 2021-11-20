@@ -9,9 +9,9 @@ from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
-from datetime import timedelta
+from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path
+from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
 import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
@@ -47,21 +47,11 @@ async def start_app():
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
                 User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
-                Post(id=UUID('9b226e9b-47f0-4557-9314-a5ff15b56d79'),
-                     title='Синий цвет',
-                     preview='Синий — наименование группы цветов.',
-                     body='Синий — наименование группы цветов. Цвет неба кажется синим вследствие рэлеевского рассеивания солнечного света.',
-                     author=User[UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')])
+
             commit()
 
 
 # -----------------------------------------------------------------------------------------
-
-
-@app.post("/api/v1/comments", tags=['Comments'])  # Максим
-def creating_a_post(comment: RequestCreateComment = Body(...),
-                    current_user: UserInDB = Depends(get_current_active_user)):
-    return 'коммент создан'
 
 
 @app.get("/api/v1/comments", tags=['Comments'])  # Никита
@@ -80,11 +70,16 @@ def deleting_a_comment_by_id(id: UUID):
 
 
 # -----------------------------------------------------------------------------------------
-
-
 @app.post("/api/v1/post", tags=['Post'])  # Максим
-def creating_a_post(post: RequestCreatePost = Body(...)):
-    return 'пост создан'
+def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
+    with db_session:
+        post_ = post.dict()
+        post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
+        post_['author'] = User.get(nickname=current_user.nickname)
+        Post(**post_)
+        commit()
+        return post_
+
 
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
