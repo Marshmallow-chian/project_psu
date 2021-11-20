@@ -4,7 +4,7 @@ import uuid
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, RequestCreatePost, PostResponse, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
@@ -92,8 +92,16 @@ def get_posts_by_pagination(page: int, count: int):
 
 
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
-def search_for_posts(searchData: str):
-    return 'поиск'
+async def search_for_posts(searchData: str):
+    with db_session:
+        # response = Post.select(p for p in Post if searchData in Post)
+        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
+        all_response = []
+        for i in response:
+            all_response.append(PostResponse.from_orm(i))
+        # if bool(response) is False:
+        #     return 'Нет такого слова на странице'
+        return all_response
 
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
