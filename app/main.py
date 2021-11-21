@@ -1,5 +1,4 @@
 import uuid
-
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
@@ -169,9 +168,27 @@ async def search_for_posts(searchData: str):
 # TODO: Добаить проверку на наличие слова в посте.
 
 
+@app.get("/api/v1/post/search", tags=['Post'])  # Никита
+async def search_for_posts(searchData: str):
+    with db_session:
+        # response = Post.select(p for p in Post if searchData in Post)
+        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
+        all_response = []
+        for i in response:
+            all_response.append(PostResponse.from_orm(i))
+        if all_response == []:
+            return 'Нет такого слова в посте'
+        return all_response
+
+
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
-    return 'пост по id'
+    with db_session:
+        if Post.exists(id=id):
+            products = Post.get(id=id)
+            return PostResponse.from_orm(products)
+        else:
+            return 'id не был найден'
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
     #    detail="Invalid input data",
@@ -182,9 +199,16 @@ def get_post_by_id(id: UUID):
     # )
 
 
+
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Никита
-def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
-    return 'пост изменён'
+def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...)):
+    with db_session:
+        if Post.exists(id=id):
+            product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
+            Post[id].set(**product_chng)
+            commit()
+            return (PostResponse.from_orm(Post[id]))
+        return 'id не существует'
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
     #    detail="Invalid input data",
