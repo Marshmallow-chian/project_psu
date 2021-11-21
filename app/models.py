@@ -17,6 +17,7 @@ class Post(db.Entity):
     title = Required(str, 200)
     preview = Required(str, 2000)
     body = Required(str, 20000)
+    image = Optional(str, 500)
     publishDate = Required(datetime)
     author = Required(User)
     comments = Set('Comment')

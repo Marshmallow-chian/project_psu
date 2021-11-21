@@ -1,7 +1,9 @@
+import uuid
+
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestRegistration, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
@@ -9,9 +11,11 @@ from security.s_scheme import Token
 from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
+import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
+from jose import JWTError
 
 
 app = FastAPI()
@@ -40,7 +44,8 @@ async def start_app():
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
-                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
+                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1',
+                     hashed_password=get_password_hash('123'))
             commit()
 
 
@@ -51,6 +56,14 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         return 'коммент создан'
+    # raise HTTPException(
+    #            status_code=status.HTTP_400_BAD_REQUEST,
+    #            detail="Invalid input data",
+    #        )
+    # raise HTTPException(
+    #            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #            detail="Failed to create comment",
+    #        )
 
 
 @app.get("/api/v1/comments", tags=['Comments'])  # Настя
@@ -60,17 +73,32 @@ def get_comments_by_post(id_post: UUID):
             post = Post.get(id=id_post)
             return post.comments
         else:
-            return 'пост не найден'
+            raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid input data",
+            )
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
-def deleting_a_comment_by_id(id: UUID):
+def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
-        if Comment.exists(id=id):
-            Comment[id].delete()
-            commit()
-            return "Комментарий удалён"
-        return "Комментарий не найден"
+        try:
+            if Comment.exists(id=id):
+                Comment[id].delete()
+                commit()
+                return True
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid comment id",
+                    headers={"WWW-Authenticate": "Bearer"},
+            )
+        except JWTError:
+            raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to delete comment",
+                    headers={"WWW-Authenticate": "Bearer"},
+            )
 
 
 # -----------------------------------------------------------------------------------------
@@ -79,12 +107,26 @@ def deleting_a_comment_by_id(id: UUID):
 @app.post("/api/v1/post", tags=['Post'])  # Максим
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
-        post_ = post.dict()
-        post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
-        post_['author'] = User.get(nickname=current_user.nickname)
-        new_post = Post(**post_)
-        commit()
-        return new_post.to_dict()
+        try:
+            post_ = post.dict()
+            post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
+            post_['author'] = User.get(nickname=current_user.nickname)
+            new_post = Post(**post_)
+            commit()
+            return new_post.to_dict()
+
+            # raise HTTPException(
+            #    status_code=status.HTTP_400_BAD_REQUEST,
+            #    detail="Invalid input data",
+            # )
+
+        except JWTError:
+            raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create post",
+                    headers={"WWW-Authenticate": "Bearer"},
+            )
+
 # TODO: реализовать валидацию автора и поста через pydantic.
 #  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
@@ -92,6 +134,21 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
 def get_posts_by_pagination(page: int, count: int):
     return 'пост по странцие'
+    # raise HTTPException(
+    #    status_code=status.HTTP_400_BAD_REQUEST,
+    #    detail="Invalid input data",
+    # )
+
+
+@app.get("/api/v1/get_post", tags=['Post'])  # Максим
+def get_all_posts():
+    with db_session:
+        posts = Post.select()
+        # преобразуем запрос в SQL, а затем отправим в базу данных
+        all_posts = []
+        for i in posts:
+            all_posts.append(PostResponse.from_orm(i))
+    return all_posts
 
 
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
@@ -104,27 +161,57 @@ async def search_for_posts(searchData: str):
         # if bool(response) is False:
         #     return 'Нет такого слова на странице'
         return all_response
+    # raise HTTPException(
+    #    status_code=status.HTTP_400_BAD_REQUEST,
+    #    detail="Invalid input data",
+    # )
 # TODO: Добаить проверку на наличие слова в посте.
 
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
     return 'пост по id'
+    # raise HTTPException(
+    #    status_code=status.HTTP_400_BAD_REQUEST,
+    #    detail="Invalid input data",
+    # )
+    # raise HTTPException(
+    #    status_code=status.HTTP_404_NOT_FOUND,
+    #    detail="Not found post by id",
+    # )
 
 
-@app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
+@app.put("/api/v1/post/{id}", tags=['Post'])  # Никита
 def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
     return 'пост изменён'
+    # raise HTTPException(
+    #    status_code=status.HTTP_400_BAD_REQUEST,
+    #    detail="Invalid input data",
+    # )
+    # raise HTTPException(
+    #    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #    detail="Failed to update post",
+    #    headers={"WWW-Authenticate": "Bearer"},
+    # )
 
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Настя
 def deleting_a_post_by_id(id: UUID):
     with db_session:
-        if Post.exists(id=id):
-            Post[id].delete()
-            commit()
-            return "Пост удалён"
-        return "Пост не найден"
+        try:
+            if Post.exists(id=id):
+                Post[id].delete()
+                commit()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid post id",
+                )
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete post",
+            )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -133,16 +220,45 @@ def deleting_a_post_by_id(id: UUID):
 @app.post("/token", response_model=Token, tags=['User'])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
-        user = authenticate_user(form_data.username, form_data.password)  # UserInDB or False
-        if not user:
+        try:
+            user = authenticate_user(form_data.username, form_data.password)  # UserInDB or False
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect username or password",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
+            access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
+            return {"access_token": access_token, "token_type": "bearer"}
+        except JWTError:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input data",
             )
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
-        access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
-        return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post('/api/v1/user/reg', tags=['User'])
+async def account_registration(user: RequestRegistration = Body(...)):  # любой
+    with db_session:
+        try:
+            n_user = user.dict()
+            if User.exists(nickname=user.nickname):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="An account with this nickname already exists",
+                )
+
+            user_ = {'nickname': n_user['nickname'], 'hashed_password': get_password_hash(n_user['password'])}
+            print(user)
+            User(**user_)
+            commit()
+            return UserResponse(**user_)
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create account",
+            )
 
 
 @app.get('/api/user', tags=['User'])
