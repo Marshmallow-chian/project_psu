@@ -113,7 +113,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()
-            return new_post.to_dict()
+            return new_post.id
 
             # raise HTTPException(
             #    status_code=status.HTTP_400_BAD_REQUEST,
@@ -127,13 +127,14 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
                     headers={"WWW-Authenticate": "Bearer"},
             )
 
+
 # TODO: реализовать валидацию автора и поста через pydantic.
 #  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
-
 @app.get("/api/v1/post", tags=['Post'])  # Максим
 def get_posts_by_pagination(page: int, count: int):
-    return 'пост по странцие'
+    posts = Post.select()[::-1]
+    return posts[(page - 1) * count]
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
     #    detail="Invalid input data",
