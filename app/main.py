@@ -1,7 +1,9 @@
+import uuid
+
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestRegistration, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
@@ -40,7 +42,8 @@ async def start_app():
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
-                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
+                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1',
+                     hashed_password=get_password_hash('123'))
             commit()
 
 
@@ -94,6 +97,17 @@ def get_posts_by_pagination(page: int, count: int):
     return 'пост по странцие'
 
 
+@app.get("/api/v1/get_post", tags=['Post'])  # Максим
+def get_all_posts():
+    with db_session:
+        posts = Post.select()
+        # преобразуем запрос в SQL, а затем отправим в базу данных
+        all_posts = []
+        for i in posts:
+            all_posts.append(PostResponse.from_orm(i))
+    return all_posts
+
+
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
 async def search_for_posts(searchData: str):
     with db_session:
@@ -143,6 +157,20 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
         access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
         return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post('/api/v1/user/reg', tags=['User'])
+async def account_registration(user: RequestRegistration = Body(...)):  # любой
+    with db_session:
+        n_user = user.dict()
+        if User.exists(nickname=user.nickname):
+            return 'пользователь с таким именем уже существует'
+
+        user_ = {'id': uuid4(), 'nickname': n_user['nickname'], 'hashed_password': get_password_hash(n_user['password'])}
+        print(user)
+        User(**user_)
+        commit()
+        return UserResponse(**user_)
 
 
 @app.get('/api/user', tags=['User'])

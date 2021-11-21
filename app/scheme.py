@@ -6,19 +6,19 @@ from datetime import datetime
 
 class RequestCreateComment(BaseModel):
     postId: UUID
-    parentId: UUID
+    parentId: Annotated[UUID, Field(nullable=True)]
     nickname: Annotated[str, Field(max_length=100)] = 'nickname'
-    message:  Annotated[str, Field(max_length=993)] = 'massage'
+    message: Annotated[str, Field(max_length=993)] = 'massage'
 
 
 class PostIdForCommentsResponse(BaseModel):
-    id: UUID
+    id: Annotated[UUID, Field(nullable=True)]
 
 
 class CommentResponse(BaseModel):
     id: UUID
     postId: PostIdForCommentsResponse
-    parentId: Annotated[UUID, Field(default_factory=None)]  # комментарий родитель (тот кому ответили) null - комент первого уровня
+    parentId: Annotated[UUID, Field(nullable=True)]
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
     createDate: datetime
@@ -29,7 +29,6 @@ class CommentResponse(BaseModel):
             value = value.to_dict()
         return value
 
-
     class Config:
         orm_mode = True
 
@@ -38,6 +37,7 @@ class RequestCreatePost(BaseModel):
     title: Annotated[str, Field(max_length=200)] = 'title for'
     preview: Annotated[str, Field(max_length=2000)] = 'preview'
     body: Annotated[str, Field(max_length=20000)] = 'body'
+    image: Annotated[str, Field(max_length=500)]
 
 
 class PostResponse(BaseModel):
@@ -45,6 +45,7 @@ class PostResponse(BaseModel):
     title: Annotated[str, Field(nullable=True)] = 'title'
     preview: Annotated[str, Field(nullable=True)] = 'preview'
     body: Annotated[str, Field(nullable=True)] = 'body'
+    image: Annotated[str, Field(max_length=500, nullable=True)]
     publishDate: datetime
 
     class Config:
@@ -52,18 +53,24 @@ class PostResponse(BaseModel):
 
 
 class RequestUpdatePost(BaseModel):
-    title: Annotated[str, Field(max_length=200)] = 'title'
-    preview: Annotated[str, Field(max_length=2000)] = 'preview'
-    body: Annotated[str, Field(max_length=20000)] = 'body'
+    title: Annotated[str, Field(max_length=200, nullable=True)] = 'title'
+    preview: Annotated[str, Field(max_length=2000, nullable=True)] = 'preview'
+    body: Annotated[str, Field(max_length=20000, nullable=True)] = 'body'
+    image: Annotated[str, Field(max_length=500, nullable=True)]
 
 
 class RequestAuthorize(BaseModel):
-    nickname: Annotated[str, Field(max_length=255)] = 'nickname'
-    password:  Annotated[str, Field(max_length=255)] = 'password'
+    nickname: Annotated[str, Field(max_length=100)] = 'nickname'
+    password: Annotated[str, Field(max_length=255)] = 'password'
+
+
+class RequestRegistration(BaseModel):
+    nickname: Annotated[str, Field(max_length=100)] = 'nickname'
+    password: Annotated[str, Field(max_length=255)] = 'password'
 
 
 class UserResponse(BaseModel):
-    # используется для вывода имени пользователя, после его регистрации
+    id: UUID
     nickname: Annotated[str, Field(max_length=255)] = 'nickname'
 
     class Config:
@@ -72,4 +79,3 @@ class UserResponse(BaseModel):
 
 class UserInDB(UserResponse):
     hashed_password: str
-
