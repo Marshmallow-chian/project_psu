@@ -1,4 +1,3 @@
-import uuid
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
@@ -140,7 +139,7 @@ def get_posts_by_pagination(page: int, count: int):
     # )
 
 
-@app.get("/api/v1/get_post", tags=['Post'])  # Максим
+@app.get("/api/v1/get_post", tags=['Post'])  # потом удалить
 def get_all_posts():
     with db_session:
         posts = Post.select()
@@ -168,19 +167,6 @@ async def search_for_posts(searchData: str):
 # TODO: Добаить проверку на наличие слова в посте.
 
 
-@app.get("/api/v1/post/search", tags=['Post'])  # Никита
-async def search_for_posts(searchData: str):
-    with db_session:
-        # response = Post.select(p for p in Post if searchData in Post)
-        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
-        all_response = []
-        for i in response:
-            all_response.append(PostResponse.from_orm(i))
-        if all_response == []:
-            return 'Нет такого слова в посте'
-        return all_response
-
-
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
     with db_session:
@@ -197,7 +183,6 @@ def get_post_by_id(id: UUID):
     #    status_code=status.HTTP_404_NOT_FOUND,
     #    detail="Not found post by id",
     # )
-
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Никита
