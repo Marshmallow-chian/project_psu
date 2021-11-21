@@ -41,7 +41,6 @@ class RequestCreatePost(BaseModel):
 
 
 class PostResponse(BaseModel):
-    id: UUID
     title: Annotated[str, Field(nullable=True)] = 'title'
     preview: Annotated[str, Field(nullable=True)] = 'preview'
     body: Annotated[str, Field(nullable=True)] = 'body'

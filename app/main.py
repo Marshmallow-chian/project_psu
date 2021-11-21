@@ -78,13 +78,14 @@ def deleting_a_comment_by_id(id: UUID):
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
         post_ = post.dict()
+        post_["id"] = uuid4()
         post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
         post_['author'] = User.get(nickname=current_user.nickname)
+        print(post_)
         new_post = Post(**post_)
         commit()
         return new_post.to_dict()
         # TODO: реализовать валидацию автора и поста через pydantic. Сделать отдельную модель для выхода OutProduct и модель для базы данных.
-
 
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
