@@ -1,30 +1,24 @@
-import os.path
-import uuid
-
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, RequestCreatePost, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestUpdatePost, UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta, datetime
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
-import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
-
-# использовать exception
 
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
 SECRET_KEY = secret_key()
-# print(uuid.uuid4())
+
 "4328c48a-4dd1-4dac-beed-f681f7c208b1"
 
 
@@ -52,15 +46,21 @@ async def start_app():
 
 # -----------------------------------------------------------------------------------------
 
-@app.post("/api/v1/comments", tags=['Comments'])  # Максим
-def creating_a_post(comment: RequestCreateComment = Body(...),
-                    current_user: UserInDB = Depends(get_current_active_user)):
-    return 'коммент создан'
+
+@app.post("/api/v1/comments", tags=['Comments'])  # Никита
+def creating_a_comment(comment: RequestCreateComment = Body(...)):
+    with db_session:
+        return 'коммент создан'
 
 
-@app.get("/api/v1/comments", tags=['Comments'])  # Никита
+@app.get("/api/v1/comments", tags=['Comments'])  # Настя
 def get_comments_by_post(id_post: UUID):
-    return 'коммент по посту'
+    with db_session:
+        if Post.exists(id=id_post):
+            post = Post.get(id=id_post)
+            return post.comments
+        else:
+            return 'пост не найден'
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
@@ -74,6 +74,8 @@ def deleting_a_comment_by_id(id: UUID):
 
 
 # -----------------------------------------------------------------------------------------
+
+
 @app.post("/api/v1/post", tags=['Post'])  # Максим
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
@@ -85,8 +87,8 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
         new_post = Post(**post_)
         commit()
         return new_post.to_dict()
-        # TODO: реализовать валидацию автора и поста через pydantic. Сделать отдельную модель для выхода OutProduct и модель для базы данных.
-
+# TODO: реализовать валидацию автора и поста через pydantic.
+#  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
 def get_posts_by_pagination(page: int, count: int):
@@ -94,16 +96,21 @@ def get_posts_by_pagination(page: int, count: int):
 
 
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
-def search_for_posts(searchData: str):
-    return 'поиск'
+async def search_for_posts(searchData: str):
+    with db_session:
+        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
+        all_response = []
+        for i in response:
+            all_response.append(PostResponse.from_orm(i))
+        # if bool(response) is False:
+        #     return 'Нет такого слова на странице'
+        return all_response
+# TODO: Добаить проверку на наличие слова в посте.
 
 
 @app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
 def get_post_by_id(id: UUID):
-    with db_session:
-        if Post.exists(id = Post.id):
-            response = Post.select(id = Post.id)
-    return
+    return 'пост по id'
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
