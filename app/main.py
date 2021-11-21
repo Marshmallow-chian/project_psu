@@ -9,7 +9,6 @@ from security.s_scheme import Token
 from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
-import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
