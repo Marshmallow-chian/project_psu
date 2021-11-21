@@ -9,7 +9,6 @@ from security.s_scheme import Token
 from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Query, Path, Security
-import os
 from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
@@ -157,8 +156,8 @@ async def search_for_posts(searchData: str):
         all_response = []
         for i in response:
             all_response.append(PostResponse.from_orm(i))
-        # if bool(response) is False:
-        #     return 'Нет такого слова на странице'
+        if all_response == []:
+             return 'Нет такого слова на странице'
         return all_response
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
