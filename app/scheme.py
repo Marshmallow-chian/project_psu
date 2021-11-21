@@ -11,13 +11,9 @@ class RequestCreateComment(BaseModel):
     message: Annotated[str, Field(max_length=993)] = 'massage'
 
 
-class PostIdForCommentsResponse(BaseModel):
-    id: Annotated[UUID, Field(nullable=True)]
-
-
 class CommentResponse(BaseModel):
     id: UUID
-    postId: PostIdForCommentsResponse
+    postId: UUID
     parentId: Annotated[UUID, Field(nullable=True)]
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
