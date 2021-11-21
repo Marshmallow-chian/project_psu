@@ -13,7 +13,6 @@ from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
 
-
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
@@ -40,7 +39,8 @@ async def start_app():
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
             if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
-                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1', hashed_password=get_password_hash('123'))
+                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1',
+                     hashed_password=get_password_hash('123'))
             commit()
 
 
@@ -80,19 +80,20 @@ def deleting_a_comment_by_id(id: UUID):
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
         post_ = post.dict()
-        post_["id"] = uuid4()
         post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
         post_['author'] = User.get(nickname=current_user.nickname)
-        print(post_)
         new_post = Post(**post_)
         commit()
-        return new_post.to_dict()
+        return new_post.id
+
+
 # TODO: реализовать валидацию автора и поста через pydantic.
 #  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
 def get_posts_by_pagination(page: int, count: int):
-    return 'пост по странцие'
+    posts = Post.select()[::-1]
+    return posts[(page - 1) * count]
 
 
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
@@ -105,6 +106,8 @@ async def search_for_posts(searchData: str):
         # if bool(response) is False:
         #     return 'Нет такого слова на странице'
         return all_response
+
+
 # TODO: Добаить проверку на наличие слова в посте.
 
 
@@ -115,7 +118,8 @@ def get_post_by_id(id: UUID):
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Максим
 def updating_a_post_by_id(id: UUID, post: RequestUpdatePost = Body(...)):
-    return 'пост изменён'
+   pass
+
 
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Настя
