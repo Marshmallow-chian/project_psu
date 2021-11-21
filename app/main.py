@@ -49,6 +49,7 @@ async def start_app():
 
 @app.post("/api/v1/comments", tags=['Comments'])  # Никита
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
+
     with db_session:
         return 'коммент создан'
 
@@ -92,8 +93,11 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
 
 @app.get("/api/v1/post", tags=['Post'])  # Максим
 def get_posts_by_pagination(page: int, count: int):
-    posts = Post.select()[::-1]
-    return posts[(page - 1) * count]
+    with db_session:
+        posts = Post.select()[::]
+        posts = posts[::-1]
+        print('Response:', posts[(page - 1) * count])
+        return PostResponse.from_orm(posts[(page - 1) * count])
 
 
 @app.get("/api/v1/post/search", tags=['Post'])  # Никита
