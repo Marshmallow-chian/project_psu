@@ -138,7 +138,7 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...)):
             product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
             Post[id].set(**product_chng)
             commit()
-            return (RequestUpdatePost.from_orm(Post[id]), "пост изменён")
+            return (PostResponse.from_orm(Post[id]))
         return 'id не существует'
 
 
