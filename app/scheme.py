@@ -1,29 +1,36 @@
 from pydantic import BaseModel, validator, Field
-from typing import Annotated
+from typing_extensions import Annotated
+from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
 
 class RequestCreateComment(BaseModel):
     postId: UUID
-    parentId: Annotated[UUID, Field(nullable=True)]
+    parentId: Annotated[Optional[UUID], Field(nullable=True, default_factory=None)]
     nickname: Annotated[str, Field(max_length=100)] = 'nickname'
     message: Annotated[str, Field(max_length=993)] = 'massage'
+
+
+'''class CommentsForComment(BaseModel):
+    id: UUID
+    message: str'''
 
 
 class CommentResponse(BaseModel):
     id: UUID
     postId: UUID
-    parentId: Annotated[UUID, Field(nullable=True)]
+    parentId: Annotated[Optional[UUID], Field(nullable=True, default_factory=None)]
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
-    createDate: datetime
+    createDate: Optional[datetime]
+    '''comment: CommentsForComment
 
-    @validator('postId', pre=True, allow_reuse=True)
+    @validator('comment', pre=True, allow_reuse=True)
     def pony_set_to_list(cls, value):
         if hasattr(value, "to_dict"):
             value = value.to_dict()
-        return value
+        return value'''
 
     class Config:
         orm_mode = True
