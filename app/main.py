@@ -1,7 +1,8 @@
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, PostResponse, RequestCreatePost, RequestRegistration, RequestUpdatePost, UserInDB)
+from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration, RequestUpdatePost,
+                        UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
@@ -13,7 +14,6 @@ from configuration.config import secret_key, author
 from uuid import UUID, uuid4
 from datetime import datetime
 from jose import JWTError
-
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
@@ -52,15 +52,46 @@ async def start_app():
 @app.post("/api/v1/comments", tags=['Comments'])  # Никита
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
-        return 'коммент создан'
-    # raise HTTPException(
-    #            status_code=status.HTTP_400_BAD_REQUEST,
-    #            detail="Invalid input data",
-    #        )
-    # raise HTTPException(
-    #            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #            detail="Failed to create comment",
-    #        )
+        request = comment.dict(exclude_unset=True, exclude_none=True)
+        request['createDate'] = datetime.now()
+        request['post'] = comment.postId
+
+        try:
+            if not Post.exists(id=request["postId"]):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Не найден пост",
+                )
+            elif request.get('parentId') is not None:  # ответ на комментарий
+                if not Comment.exists(id=request['parentId']):
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Invalid input data",
+                    )
+                request['comment'] = comment.parentId
+                comment = Comment(**request)
+                commit()
+                return CommentResponse.from_orm(comment)
+
+            comment = Comment(**request)
+            commit()
+            return CommentResponse.from_orm(comment)
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create comment",
+            )
+
+@app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
+def get_all_comment(id: UUID):
+    with db_session:
+        posts = Comment.get(id=id)
+        return CommentResponse.from_orm(posts)
+    return
+
+
+'6f97ee1b-ac3a-4a15-825d-a9cfa2bc6b83  - comment'
+"68496061-3adc-47bf-93a9-2a196cd9a4dd   - post"
 
 
 @app.get("/api/v1/comments", tags=['Comments'])  # Настя
@@ -71,8 +102,8 @@ def get_comments_by_post(id_post: UUID):
             return post.comments
         else:
             raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid input data",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input data",
             )
 
 
@@ -89,12 +120,12 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_curr
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid comment id",
                     headers={"WWW-Authenticate": "Bearer"},
-            )
+                )
         except JWTError:
             raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to delete comment",
-                    headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete comment",
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
 
@@ -119,9 +150,9 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
 
         except JWTError:
             raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create post",
-                    headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create post",
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
 
@@ -157,12 +188,14 @@ async def search_for_posts(searchData: str):
         for i in response:
             all_response.append(PostResponse.from_orm(i))
         if all_response == []:
-             return 'Нет такого слова на странице'
+            return 'Нет такого слова на странице'
         return all_response
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
     #    detail="Invalid input data",
     # )
+
+
 # TODO: Добаить проверку на наличие слова в посте.
 
 

@@ -26,7 +26,7 @@ class Post(db.Entity):
 class Comment(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     postId = Required(UUID)
-    parentId = Required(UUID, unique=True)  # id комментария
+    parentId = Optional(UUID)  # id комментария
     nickname = Required(str, 100)
     message = Required(str, 993)
     createDate = Optional(datetime)
