@@ -56,10 +56,10 @@ class PostResponse(BaseModel):
 
 
 class RequestUpdatePost(BaseModel):
-    title: Annotated[str, Field(max_length=200, nullable=True)] = 'title'
-    preview: Annotated[str, Field(max_length=2000, nullable=True)] = 'preview'
-    body: Annotated[str, Field(max_length=20000, nullable=True)] = 'body'
-    image: Annotated[str, Field(max_length=500, nullable=True)]
+    title: Annotated[Optional[str], Field(max_length=200, nullable=True)] = 'title'
+    preview: Annotated[Optional[str], Field(max_length=2000, nullable=True)] = 'preview'
+    body: Annotated[Optional[str], Field(max_length=20000, nullable=True)] = 'body'
+    image: Annotated[Optional[str], Field(max_length=500, nullable=True)]
 
 
 class RequestAuthorize(BaseModel):

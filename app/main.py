@@ -98,8 +98,8 @@ def get_comments_by_post(id_post: UUID):
                 return post.comments
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid input data",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Data not found",
                 )
         except JWTError:
             raise HTTPException(
@@ -179,9 +179,10 @@ def get_all_posts():
 @app.get("/api/v1/post/search", tags=['Post'])
 async def search_for_posts(searchData: str):
     with db_session:
-        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
-        all_response = []
         try:
+            response = Post.select(
+                lambda p: searchData.lower() in p.title.lower() or searchData.lower() in p.body.lower())
+            all_response = []
             for i in response:
                 all_response.append(PostResponse.from_orm(i))
             if all_response == []:
@@ -248,8 +249,8 @@ def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_curren
                 commit()
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid post id",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Post not found",
                 )
         except JWTError:
             raise HTTPException(
