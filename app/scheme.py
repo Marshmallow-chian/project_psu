@@ -1,5 +1,5 @@
 from pydantic import BaseModel, validator, Field
-from typing_extensions import Annotated
+from typing import Annotated
 from uuid import UUID
 from datetime import datetime
 

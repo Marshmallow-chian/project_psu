@@ -192,7 +192,7 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...), curr
             product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
             Post[id].set(**product_chng)
             commit()
-            return (PostResponse.from_orm(Post[id]))
+            return PostResponse.from_orm(Post[id])
         return 'id не существует'
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
@@ -272,7 +272,7 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
 
 
 @app.get('/api/user', tags=['User'])
-async def get_all_users(current_user: UserInDB = Depends(get_current_active_user)):  # любой
+async def get_all_users(current_user: UserInDB = Security(get_current_active_user)):  # любой
     with db_session:
         print(current_user)
         user = User.get(nickname=current_user.nickname)
