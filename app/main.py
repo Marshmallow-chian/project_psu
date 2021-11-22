@@ -137,7 +137,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
-            post_['publishDate'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            post_['publishDate'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()
