@@ -6,7 +6,7 @@ from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, Req
                         UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
-from scheme import (UserResponse)
+from app.scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
