@@ -9,3 +9,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     name: Optional[str] = None
+    scopes: List[str] = []
