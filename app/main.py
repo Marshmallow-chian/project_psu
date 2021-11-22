@@ -1,7 +1,8 @@
 import uvicorn
 from pony.orm import db_session, commit
 from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration, RequestUpdatePost,
+from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
+                        RequestUpdatePost,
                         UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
@@ -49,18 +50,18 @@ async def start_app():
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/comments", tags=['Comments'])  # Никита
+@app.post("/api/v1/comments", tags=['Comments'])
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        request['createDate'] = datetime.now()
+        request['createDate'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         request['post'] = comment.postId
 
         try:
             if not Post.exists(id=request["postId"]):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Не найден пост",
+                    detail="Post not found",
                 )
             elif request.get('parentId') is not None:  # ответ на комментарий
                 if not Comment.exists(id=request['parentId']):
@@ -82,32 +83,39 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
                 detail="Failed to create comment",
             )
 
+
+@app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
 @app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
 def get_all_comment(id: UUID):
     with db_session:
         posts = Comment.get(id=id)
         return CommentResponse.from_orm(posts)
-    return
 
 
 '6f97ee1b-ac3a-4a15-825d-a9cfa2bc6b83  - comment'
 "68496061-3adc-47bf-93a9-2a196cd9a4dd   - post"
 
 
-@app.get("/api/v1/comments", tags=['Comments'])  # Настя
+@app.get("/api/v1/comments", tags=['Comments'])
 def get_comments_by_post(id_post: UUID):
     with db_session:
-        if Post.exists(id=id_post):
-            post = Post.get(id=id_post)
-            return post.comments
-        else:
+        try:
+            if Post.exists(id=id_post):
+                post = Post.get(id=id_post)
+                return post.comments
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid input data",
+                )
+        except JWTError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Invalid input data",
             )
 
 
-@app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
+@app.delete("/api/v1/comments/{id}", tags=['Comments'])
 def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
         try:
@@ -119,7 +127,6 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_curr
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid comment id",
-                    headers={"WWW-Authenticate": "Bearer"},
                 )
         except JWTError:
             raise HTTPException(
@@ -132,25 +139,20 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_curr
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/post", tags=['Post'])  # Максим
+@app.post("/api/v1/post", tags=['Post'])
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
     with db_session:
         try:
             post_ = post.dict()
-            post_['publishDate'] = datetime.now()  # время создания поста publishDate и автора поста
+            post_['publishDate'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # время создания поста publishDate и автора поста
+            print(post_)
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()
             return new_post.id
-
-            # raise HTTPException(
-            #    status_code=status.HTTP_400_BAD_REQUEST,
-            #    detail="Invalid input data",
-            # )
-
         except JWTError:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to create post",
                 headers={"WWW-Authenticate": "Bearer"},
             )
@@ -159,14 +161,17 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
 # TODO: реализовать валидацию автора и поста через pydantic.
 #  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
 
-@app.get("/api/v1/post", tags=['Post'])  # Максим
+
+@app.get("/api/v1/post", tags=['Post'])
 def get_posts_by_pagination(page: int, count: int):
-    posts = Post.select()[::-1]
-    return posts[(page - 1) * count]
-    # raise HTTPException(
-    #    status_code=status.HTTP_400_BAD_REQUEST,
-    #    detail="Invalid input data",
-    # )
+    try:
+        posts = Post.select()[::-1]
+        return posts[(page - 1) * count]
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid input data",
+        )
 
 
 @app.get("/api/v1/get_post", tags=['Post'])  # потом удалить
@@ -180,64 +185,70 @@ def get_all_posts():
     return all_posts
 
 
-@app.get("/api/v1/post/search", tags=['Post'])  # Никита
+@app.get("/api/v1/post/search", tags=['Post'])
 async def search_for_posts(searchData: str):
     with db_session:
         response = Post.select(lambda p: searchData in p.title or searchData in p.body)
         all_response = []
-        for i in response:
-            all_response.append(PostResponse.from_orm(i))
-        if all_response == []:
-            return 'Нет такого слова на странице'
-        return all_response
-    # raise HTTPException(
-    #    status_code=status.HTTP_400_BAD_REQUEST,
-    #    detail="Invalid input data",
-    # )
+        try:
+            for i in response:
+                all_response.append(PostResponse.from_orm(i))
+            if all_response == []:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Data not found",
+                )
+            return all_response
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create post",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
 
-# TODO: Добаить проверку на наличие слова в посте.
-
-
-@app.get("/api/v1/post/{id}", tags=['Post'])  # Никита
+@app.get("/api/v1/post/{id}", tags=['Post'])
 def get_post_by_id(id: UUID):
     with db_session:
-        if Post.exists(id=id):
-            products = Post.get(id=id)
-            return PostResponse.from_orm(products)
-        else:
-            return 'id не был найден'
-    # raise HTTPException(
-    #    status_code=status.HTTP_400_BAD_REQUEST,
-    #    detail="Invalid input data",
-    # )
-    # raise HTTPException(
-    #    status_code=status.HTTP_404_NOT_FOUND,
-    #    detail="Not found post by id",
-    # )
+        try:
+            if Post.exists(id=id):
+                products = Post.get(id=id)
+                return PostResponse.from_orm(products)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Not found post by id",
+                )
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid input data",
+            )
 
 
-@app.put("/api/v1/post/{id}", tags=['Post'])  # Никита
+@app.put("/api/v1/post/{id}", tags=['Post'])
 def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...)):
     with db_session:
-        if Post.exists(id=id):
-            product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
-            Post[id].set(**product_chng)
-            commit()
-            return (PostResponse.from_orm(Post[id]))
-        return 'id не существует'
-    # raise HTTPException(
-    #    status_code=status.HTTP_400_BAD_REQUEST,
-    #    detail="Invalid input data",
-    # )
-    # raise HTTPException(
-    #    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #    detail="Failed to update post",
-    #    headers={"WWW-Authenticate": "Bearer"},
-    # )
+        try:
+            if Post.exists(id=id):
+                product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
+                Post[id].set(**product_chng)
+                commit()
+                return (PostResponse.from_orm(Post[id]))
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Data not found",
+                )
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update post",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
 
-@app.delete("/api/v1/post/{id}", tags=['Post'])  # Настя
+@app.delete("/api/v1/post/{id}", tags=['Post'])
 def deleting_a_post_by_id(id: UUID):
     with db_session:
         try:
