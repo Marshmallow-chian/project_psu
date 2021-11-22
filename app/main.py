@@ -8,7 +8,7 @@ from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
-from datetime import timedelta
+from datetime import timedelta, timezone
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
 from configuration.config import secret_key, author
@@ -16,7 +16,7 @@ from uuid import UUID
 from datetime import datetime
 from jose import JWTError
 import os
-
+import pytz
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
@@ -55,9 +55,8 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        request['createDate'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        request['createDate'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         request['post'] = comment.postId
-
         try:
             if not Post.exists(id=request["postId"]):
                 raise HTTPException(
