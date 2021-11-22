@@ -125,7 +125,6 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_cur
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete comment",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
 
