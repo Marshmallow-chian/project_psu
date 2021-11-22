@@ -6,7 +6,7 @@ from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, Req
                         UserInDB)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
-from scheme import (UserResponse)
+from app.scheme import (UserResponse)
 from security.s_scheme import Token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
@@ -42,9 +42,6 @@ async def start_app():
             name = AUTHOR['nickname']
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
-            if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
-                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1',
-                     hashed_password=get_password_hash('123'))
             commit()
 
 
