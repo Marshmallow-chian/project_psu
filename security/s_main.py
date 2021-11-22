@@ -1,20 +1,22 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union, Literal
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status, Security
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from security.s_scheme import Token, TokenData
 from app.scheme import UserInDB
 from pony.orm import db_session
 from app.models import User
+from pydantic import ValidationError
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/user/auth", scopes={})
+
 
 def verify_password(plain_password, hashed_password):  # проверяет правильность пароля, True/False
     return pwd_context.verify(plain_password, hashed_password)
@@ -57,13 +59,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None): 
     return encoded_jwt
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)):
     from app.main import SECRET_KEY
-
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = f"Bearer"
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": authenticate_value},
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -71,7 +76,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         if username is None:
             raise credentials_exception
         token_data = TokenData(name=username)
-    except JWTError:
+    except (JWTError, ValidationError):
         raise credentials_exception
     user = get_user(token_data.name)
     if user is None:
@@ -79,5 +84,5 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):  # UserInDB
+async def get_current_active_user(current_user: User = Security(get_current_user)):  # UserInDB
     return current_user

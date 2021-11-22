@@ -78,7 +78,7 @@ def get_comments_by_post(id_post: UUID):
 
 
 @app.delete("/api/v1/comments/{id}", tags=['Comments'])  # Настя
-def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_current_active_user)):
+def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
             if Comment.exists(id=id):
@@ -103,7 +103,7 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Depends(get_curr
 
 
 @app.post("/api/v1/post", tags=['Post'])  # Максим
-def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Depends(get_current_active_user)):
+def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
             post_ = post.dict()
@@ -186,13 +186,13 @@ def get_post_by_id(id: UUID):
 
 
 @app.put("/api/v1/post/{id}", tags=['Post'])  # Никита
-def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...)):
+def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         if Post.exists(id=id):
             product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
             Post[id].set(**product_chng)
             commit()
-            return (PostResponse.from_orm(Post[id]))
+            return PostResponse.from_orm(Post[id])
         return 'id не существует'
     # raise HTTPException(
     #    status_code=status.HTTP_400_BAD_REQUEST,
@@ -206,7 +206,7 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...)):
 
 
 @app.delete("/api/v1/post/{id}", tags=['Post'])  # Настя
-def deleting_a_post_by_id(id: UUID):
+def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
             if Post.exists(id=id):
@@ -227,7 +227,7 @@ def deleting_a_post_by_id(id: UUID):
 # ----------------------------------------------------------------------------------------------------
 
 
-@app.post("/token", response_model=Token, tags=['User'])
+@app.post("/api/v1/user/auth", response_model=Token, tags=['User'])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
         try:
@@ -258,12 +258,12 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
                     status_code=status.HTTP_409_CONFLICT,
                     detail="An account with this nickname already exists",
                 )
-
             user_ = {'nickname': n_user['nickname'], 'hashed_password': get_password_hash(n_user['password'])}
-            print(user)
             User(**user_)
             commit()
-            return UserResponse(**user_)
+            access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
+            access_token = create_access_token(data={"sub": user_['nickname']}, expires_delta=access_token_expires)
+            return access_token
         except JWTError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -272,7 +272,7 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
 
 
 @app.get('/api/user', tags=['User'])
-async def get_all_users(current_user: UserInDB = Depends(get_current_active_user)):  # любой
+async def get_all_users(current_user: UserInDB = Security(get_current_active_user)):  # любой
     with db_session:
         print(current_user)
         user = User.get(nickname=current_user.nickname)
