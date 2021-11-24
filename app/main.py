@@ -17,6 +17,7 @@ from jose import JWTError
 import os
 import pytz
 
+
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
@@ -52,9 +53,15 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        tz_M = pytz.timezone('Europe/Moscow')
-        datetime_NY = datetime.now(tz_M)
-        request['createDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
+
+        #request['createDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
+
+        tz_moscow = pytz.timezone("Europe/Moscow")
+        dt_moscow = datetime.datetime.now(tz_moscow)
+        date_obj = datetime.datetime.strptime(dt_moscow, '%m/%d/%y')
+        print(date_obj)
+        request['createDate'] = date_obj
+
         request['post'] = comment.postId
         try:
             if not Post.exists(id=request["postId"]):
@@ -144,9 +151,11 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
         try:
             post_ = post.dict()
 
-            tz_M = pytz.timezone('Europe/Moscow')
-            datetime_NY = datetime.now(tz_M)
-            post_['publishDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
+            tz_moscow = pytz.timezone("Europe/Moscow")
+            dt_moscow = datetime.datetime.now(tz_moscow)
+            date_obj = datetime.datetime.strptime(dt_moscow, '%m/%d/%y')
+            print(date_obj)
+            post_['publishDate'] = date_obj
 
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
