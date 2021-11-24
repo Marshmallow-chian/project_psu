@@ -8,11 +8,11 @@ from security.s_main import (get_current_active_user,
 from security.s_scheme import Token
 from datetime import timedelta, timezone
 import pytz
+from datetime import timedelta, timezone, datetime
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
 from configuration.config import secret_key, author
 from uuid import UUID
-from datetime import datetime
 from jose import JWTError
 import os
 import pytz
@@ -53,9 +53,7 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-
         request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
-
         request['post'] = comment.postId
 
         try:
@@ -135,9 +133,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
-
             post_['publishDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
-
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()

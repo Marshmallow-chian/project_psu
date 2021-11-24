@@ -3,7 +3,7 @@ from typing_extensions import Annotated
 from typing import Optional
 from uuid import UUID
 from datetime import datetime, timezone
-
+import pytz
 
 class RequestCreateComment(BaseModel):
     postId: UUID
@@ -12,9 +12,9 @@ class RequestCreateComment(BaseModel):
     message: Annotated[str, Field(max_length=993)] = 'massage'
 
 
-class CommentsForComment(BaseModel):
+'''class CommentsForComment(BaseModel):
     id: UUID
-    message: str
+    message: str'''
 
 
 class CommentResponse(BaseModel):
@@ -24,19 +24,10 @@ class CommentResponse(BaseModel):
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
     createDate: datetime
-    '''comments: CommentsForComment
-
-    @validator('comments', pre=True, allow_reuse=True)
-    def pony_set_to_list(cls, values):
-        new_values = list()  # Добавляет всю инфу о продуктах
-        for v in values:
-            if hasattr(v, "to_dict"):
-                new_values.append(v.to_dict())
-        return new_values'''
 
     @validator("createDate")
     def parse_createDate(cls, createDate):
-        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        return datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
     '''comment: CommentsForComment
 
@@ -67,7 +58,7 @@ class PostResponse(BaseModel):
 
     @validator("publishDate")
     def parse_publishDate(cls, publishDate):
-        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        return datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
     class Config:
         orm_mode = True
