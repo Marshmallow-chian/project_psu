@@ -62,7 +62,7 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Post not found",
                 )
-            elif request.get('parentId') is not None:  # ответ на комментарий
+            elif request.get('parentId') is None:  # ответ на комментарий
                 if not Comment.exists(id=request['parentId']):
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
