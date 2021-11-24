@@ -3,7 +3,7 @@ from typing_extensions import Annotated
 from typing import Optional
 from uuid import UUID
 from datetime import datetime, timezone
-
+import pytz
 
 class RequestCreateComment(BaseModel):
     postId: UUID
@@ -27,7 +27,7 @@ class CommentResponse(BaseModel):
 
     @validator("createDate")
     def parse_createDate(cls, createDate):
-        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        return datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
     '''comment: CommentsForComment
 
@@ -58,7 +58,7 @@ class PostResponse(BaseModel):
 
     @validator("publishDate")
     def parse_publishDate(cls, publishDate):
-        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        return datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
     class Config:
         orm_mode = True
