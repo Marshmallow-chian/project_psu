@@ -8,6 +8,7 @@ from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from scheme import (UserResponse)
 from security.s_scheme import Token
+from datetime import timedelta
 from datetime import timedelta, timezone
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
@@ -43,9 +44,6 @@ async def start_app():
             name = AUTHOR['nickname']
             if not User.exists(nickname=AUTHOR['nickname']):
                 User(**AUTHOR)
-            if not User.exists(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf')):
-                User(id=UUID('1a984747-07e7-4f6c-a96f-f01adec705bf'), nickname='User1',
-                     hashed_password=get_password_hash('123'))
             commit()
 
 
@@ -104,8 +102,8 @@ def get_comments_by_post(id_post: UUID):
                 return post.comments
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid input data",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Data not found",
                 )
         except JWTError:
             raise HTTPException(
@@ -185,9 +183,10 @@ def get_all_posts():
 @app.get("/api/v1/post/search", tags=['Post'])
 async def search_for_posts(searchData: str):
     with db_session:
-        response = Post.select(lambda p: searchData in p.title or searchData in p.body)
-        all_response = []
         try:
+            response = Post.select(
+                lambda p: searchData.lower() in p.title.lower() or searchData.lower() in p.body.lower())
+            all_response = []
             for i in response:
                 all_response.append(PostResponse.from_orm(i))
             if all_response == []:
@@ -254,8 +253,8 @@ def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_curren
                 commit()
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid post id",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Post not found",
                 )
         except JWTError:
             raise HTTPException(
