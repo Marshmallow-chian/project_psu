@@ -54,15 +54,10 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
 
-        #request['createDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
-
-        tz_moscow = pytz.timezone("Europe/Moscow")
-        dt_moscow = datetime.datetime.now(tz_moscow)
-        date_obj = datetime.datetime.strptime(dt_moscow, '%m/%d/%y')
-        print(date_obj)
-        request['createDate'] = date_obj
+        request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
         request['post'] = comment.postId
+
         try:
             if not Post.exists(id=request["postId"]):
                 raise HTTPException(
@@ -88,16 +83,6 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create comment",
             )
-
-
-@app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
-def get_all_comment():
-    with db_session:
-        comments = Comment.select()[::]
-        l_post = []
-        for i in comments:
-            l_post.append(CommentResponse.from_orm(i))
-        return l_post
 
 
 @app.get("/api/v1/comments", tags=['Comments'])
@@ -150,8 +135,8 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
-            data = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
-            post_['publishDate'] = data + datetime.timedelta(hours=3)
+
+            post_['publishDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
@@ -179,17 +164,6 @@ def get_posts_by_pagination(page: int, count: int):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid input data",
         )
-
-
-@app.get("/api/v1/get_post", tags=['Post'])  # потом удалить
-def get_all_posts():
-    with db_session:
-        posts = Post.select()
-        # преобразуем запрос в SQL, а затем отправим в базу данных
-        all_posts = []
-        for i in posts:
-            all_posts.append(PostResponse.from_orm(i))
-    return all_posts
 
 
 @app.get("/api/v1/post/search", tags=['Post'])
@@ -320,16 +294,6 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create account",
             )
-
-
-@app.get('/api/user', tags=['User'])
-async def get_all_users():  # любой
-    with db_session:
-        users = User.select()  # преобразуем запрос в SQL, а затем отправим в базу данных4
-        all_users = []
-        for i in users:
-            all_users.append(UserResponse.from_orm(i))
-    return all_users
 
 
 if __name__ == "__main__":
