@@ -150,6 +150,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
+
             data = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
             post_['publishDate'] = data + datetime.timedelta(hours=3)
 
