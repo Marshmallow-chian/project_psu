@@ -52,7 +52,9 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow').strftime("%Y-%m-%d-%H.%M.%S"))
+        tz_M = pytz.timezone('Europe/Moscow')
+        datetime_NY = datetime.now(tz_M)
+        request['createDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
         request['post'] = comment.postId
         try:
             if not Post.exists(id=request["postId"]):
@@ -141,7 +143,11 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
-            post_['publishDate'] = datetime.now(pytz.timezone('Europe/Moscow').strftime("%Y-%m-%d-%H.%M.%S"))
+
+            tz_M = pytz.timezone('Europe/Moscow')
+            datetime_NY = datetime.now(tz_M)
+            post_['publishDate'] = datetime_NY.strftime("%Y-%m-%d-%H.%M.%S")
+
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()
