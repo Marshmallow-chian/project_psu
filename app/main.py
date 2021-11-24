@@ -2,13 +2,10 @@ import uvicorn
 from pony.orm import db_session, commit, select
 from app.models import db, User, Post, Comment
 from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
-                        RequestUpdatePost,
-                        UserInDB)
+                        RequestUpdatePost, UserInDB, UserResponse)
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
-from app.scheme import (UserResponse)
 from security.s_scheme import Token
-from datetime import timedelta
 from datetime import timedelta, timezone
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
