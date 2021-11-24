@@ -129,6 +129,11 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_cur
 # -----------------------------------------------------------------------------------------
 
 
+@app.get("/dream", tags=['Ping'])
+def ping():
+    return 'Do you have a dream?'
+
+
 @app.post("/api/v1/post", tags=['Post'])
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
