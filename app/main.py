@@ -1,5 +1,5 @@
 import uvicorn
-from pony.orm import db_session, commit
+from pony.orm import db_session, commit, select
 from app.models import db, User, Post, Comment
 from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
                         RequestUpdatePost,
@@ -17,6 +17,7 @@ from datetime import datetime
 from jose import JWTError
 import os
 import pytz
+
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
@@ -85,10 +86,13 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
 
 
 @app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
-def get_all_comment(id: UUID):
+def get_all_comment():
     with db_session:
-        posts = Comment.get(id=id)
-        return CommentResponse.from_orm(posts)
+        posts = Comment.select()[::]
+        l_post = []
+        for i in posts:
+            l_post.append(CommentResponse.from_orm(i))
+        return l_post
 
 
 @app.get("/api/v1/comments", tags=['Comments'])
@@ -138,7 +142,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
     with db_session:
         try:
             post_ = post.dict()
-            post_['publishDate'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            post_['publishDate'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
             commit()

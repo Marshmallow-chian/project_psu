@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator, Field
 from typing_extensions import Annotated
 from typing import Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class RequestCreateComment(BaseModel):
@@ -50,6 +50,10 @@ class PostResponse(BaseModel):
     body: Annotated[str, Field(nullable=True)] = 'body'
     image: Annotated[str, Field(max_length=500, nullable=True)]
     publishDate: datetime
+
+    @validator("publishDate")
+    def parse_publishDate(cls, publishDate):
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
     class Config:
         orm_mode = True
