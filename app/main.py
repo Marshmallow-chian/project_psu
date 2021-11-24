@@ -151,11 +151,7 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
         try:
             post_ = post.dict()
 
-            tz_moscow = pytz.timezone("Europe/Moscow")
-            dt_moscow = datetime.datetime.now(tz_moscow)
-            date_obj = datetime.datetime.strptime(dt_moscow, '%m/%d/%y')
-            print(date_obj)
-            post_['publishDate'] = date_obj
+            post_['publishDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
             post_['author'] = User.get(nickname=current_user.nickname)
             new_post = Post(**post_)
