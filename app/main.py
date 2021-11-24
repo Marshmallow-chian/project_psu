@@ -52,7 +52,7 @@ async def start_app():
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow').strftime('%Y-%m-%d %H:%M:%S')
+        request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow').strftime('%Y-%m-%d %H:%M:%S'))
         request['post'] = comment.postId
         try:
             if not Post.exists(id=request["postId"]):
