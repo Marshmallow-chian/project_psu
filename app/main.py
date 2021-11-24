@@ -86,9 +86,9 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
 @app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
 def get_all_comment():
     with db_session:
-        posts = Comment.select()[::]
+        comments = Comment.select()[::]
         l_post = []
-        for i in posts:
+        for i in comments:
             l_post.append(CommentResponse.from_orm(i))
         return l_post
 
@@ -97,14 +97,17 @@ def get_all_comment():
 def get_comments_by_post(id_post: UUID):
     with db_session:
         try:
-            if Post.exists(id=id_post):
-                post = Post.get(id=id_post)
-                return post.comments
+            if Comment.exists(postId=id_post):
+                comments = Comment.select()
+                l_comments = []
+                for i in comments:
+                    if i.postId == id_post:
+                        l_comments.append(CommentResponse.from_orm(i))
+                return l_comments
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Data not found",
-                )
+                    detail="Post not found",)
         except JWTError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

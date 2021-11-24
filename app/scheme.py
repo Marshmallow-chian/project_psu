@@ -23,7 +23,12 @@ class CommentResponse(BaseModel):
     parentId: Annotated[Optional[UUID], Field(nullable=True, default_factory=None)]
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
-    createDate: Optional[datetime]
+    createDate: datetime
+
+    @validator("createDate")
+    def parse_createDate(cls, createDate):
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
     '''comment: CommentsForComment
 
     @validator('comment', pre=True, allow_reuse=True)
