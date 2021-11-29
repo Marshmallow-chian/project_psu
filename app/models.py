@@ -1,7 +1,6 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 from pony.orm import *
-from pydantic import BaseModel
 
 db = Database()
 
