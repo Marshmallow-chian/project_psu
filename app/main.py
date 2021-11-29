@@ -6,17 +6,15 @@ from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, Req
 from security.s_main import (get_current_active_user,
                              ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
 from security.s_scheme import Token
-from datetime import timedelta, timezone
-import pytz
 from datetime import timedelta, timezone, datetime
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
+from fastapi.responses import Response
 from configuration.config import secret_key, author
 from uuid import UUID
 from jose import JWTError
 import os
 import pytz
-
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
@@ -49,7 +47,7 @@ async def start_app():
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/comments", tags=['Comments'])
+@app.post("/api/v1/comments", tags=['Comments'], response_model_exclude={"status.HTTP_422_UNPROCESSABLE_ENTITY"})
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
@@ -85,20 +83,20 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
 
 
 @app.get("/api/v1/comments", tags=['Comments'])
-def get_comments_by_post(id_post: UUID):
+def get_comments_by_post(postId: UUID):
     with db_session:
         try:
-            if Comment.exists(postId=id_post):
+            if Comment.exists(postId=postId):
                 comments = Comment.select()
                 l_comments = []
                 for i in comments:
-                    if i.postId == id_post:
+                    if i.postId == postId:
                         l_comments.append(CommentResponse.from_orm(i))
                 return l_comments
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Post not found",)
+                    detail="Post not found", )
         except JWTError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -220,7 +218,7 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...),
                 product_chng = edit_pr.dict(exclude_unset=True, exclude_none=True)
                 Post[id].set(**product_chng)
                 commit()
-                return (PostResponse.from_orm(Post[id]))
+                return PostResponse.from_orm(Post[id])
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,

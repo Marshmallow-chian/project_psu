@@ -5,16 +5,12 @@ from uuid import UUID
 from datetime import datetime, timezone
 import pytz
 
+
 class RequestCreateComment(BaseModel):
     postId: UUID
     parentId: Annotated[Optional[UUID], Field(nullable=True, default_factory=None)]
-    nickname: Annotated[str, Field(max_length=100)] = 'nickname'
-    message: Annotated[str, Field(max_length=993)] = 'massage'
-
-
-'''class CommentsForComment(BaseModel):
-    id: UUID
-    message: str'''
+    nickname: Annotated[str, Field(max_length=100, example='nickname')]
+    message: Annotated[str, Field(max_length=993, example='massage')]
 
 
 class CommentResponse(BaseModel):
@@ -29,23 +25,16 @@ class CommentResponse(BaseModel):
     def parse_createDate(cls, createDate):
         return datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
 
-    '''comment: CommentsForComment
-
-    @validator('comment', pre=True, allow_reuse=True)
-    def pony_set_to_list(cls, value):
-        if hasattr(value, "to_dict"):
-            value = value.to_dict()
-        return value'''
 
     class Config:
         orm_mode = True
 
 
 class RequestCreatePost(BaseModel):
-    title: Annotated[str, Field(max_length=200)] = 'title for'
-    preview: Annotated[str, Field(max_length=2000)] = 'preview'
-    body: Annotated[str, Field(max_length=20000)] = 'body'
-    image: Annotated[str, Field(max_length=500)]
+    title: Annotated[str, Field(max_length=200, example='title')]
+    preview: Annotated[str, Field(max_length=2000, example='preview')]
+    body: Annotated[str, Field(max_length=20000, example='body')]
+    image: Annotated[str, Field(max_length=500, example='image')]
 
 
 class PostResponse(BaseModel):
@@ -72,18 +61,18 @@ class RequestUpdatePost(BaseModel):
 
 
 class RequestAuthorize(BaseModel):
-    nickname: Annotated[str, Field(max_length=100)] = 'nickname'
-    password: Annotated[str, Field(max_length=255)] = 'password'
+    nickname: Annotated[str, Field(max_length=100, example='nickname')]
+    password: Annotated[str, Field(max_length=255, example='password')]
 
 
 class RequestRegistration(BaseModel):
-    nickname: Annotated[str, Field(max_length=100)] = 'nickname'
-    password: Annotated[str, Field(max_length=255)] = 'password'
+    nickname: Annotated[str, Field(max_length=100, example='nickname')]
+    password: Annotated[str, Field(max_length=255, example='password')]
 
 
 class UserResponse(BaseModel):
     id: UUID
-    nickname: Annotated[str, Field(max_length=255)] = 'nickname'
+    nickname: Annotated[str, Field(max_length=255, example='nickname')]
 
     class Config:
         orm_mode = True
