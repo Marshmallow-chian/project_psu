@@ -7,7 +7,6 @@ import uvicorn
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError
 from pony.orm import db_session, commit
 from starlette.types import Message
 from app.scheme import (SuccessfulResponsePostInComments, SuccessfulResponseGetInComments, SuccessfulResponsePostInPost,
@@ -25,8 +24,6 @@ app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
 
 SECRET_KEY = secret_key()
-
-"4328c48a-4dd1-4dac-beed-f681f7c208b1"
 
 
 @app.on_event("startup")
@@ -109,7 +106,7 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
             comment = Comment(**request)
             commit()
             return CommentResponse.from_orm(comment)
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create comment",
@@ -135,7 +132,7 @@ def get_comments_by_post(postId: UUID):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Post not found", )
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Invalid input data",
@@ -161,7 +158,7 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_cur
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid comment id",
                 )
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete comment",
@@ -194,11 +191,10 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
             new_post = Post(**post_)
             commit()
             return new_post.id
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to create post",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
 
@@ -238,7 +234,7 @@ async def search_for_posts(searchData: str):
                     detail="Data not found",
                 )
             return all_response
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create post",
@@ -262,7 +258,7 @@ def get_post_by_id(id: UUID):
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Not found post by id",
                 )
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid input data",
@@ -290,11 +286,10 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...),
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Data not found",
                 )
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update post",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
 
@@ -316,7 +311,7 @@ def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_curren
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Post not found",
                 )
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete post",
@@ -345,7 +340,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
             access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
             return {"access_token": access_token, "token_type": "bearer"}
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid input data",
@@ -373,7 +368,7 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
             access_token = create_access_token(data={"sub": user_['nickname']}, expires_delta=access_token_expires)
             return access_token
-        except JWTError:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create account",

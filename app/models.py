@@ -29,7 +29,7 @@ class Comment(db.Entity):
     parentId = Optional(UUID)  # id комментария
     nickname = Required(str, 100)
     message = Required(str, 993)
-    createDate = Optional(datetime)
+    createDate = Required(datetime)
     post = Required(Post)
     comments = Set('Comment', reverse='comment')
     comment = Optional('Comment', reverse='comments')
