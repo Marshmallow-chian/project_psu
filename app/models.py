@@ -8,7 +8,7 @@ db = Database()
 class User(db.Entity):
     id = PrimaryKey(UUID, auto=True)
     nickname = Required(str, 255, unique=True)
-    hashed_password = Optional(str)
+    hashed_password = Required(str)
     posts = Set('Post')
 
 

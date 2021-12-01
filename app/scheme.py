@@ -17,8 +17,8 @@ class CommentResponse(BaseModel):
     id: UUID
     postId: UUID
     parentId: Annotated[Optional[UUID], Field(nullable=True, default_factory=None)]
-    nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
-    message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
+    nickname: Annotated[str, Field(max_length=100, nullable=True, example='nickname')]
+    message: Annotated[str, Field(max_length=993, nullable=True, example='massage')]
     createDate: datetime
 
     @validator("createDate")
@@ -39,9 +39,9 @@ class RequestCreatePost(BaseModel):
 
 class PostResponse(BaseModel):
     id: UUID
-    title: Annotated[str, Field(nullable=True)] = 'title'
-    preview: Annotated[str, Field(nullable=True)] = 'preview'
-    body: Annotated[str, Field(nullable=True)] = 'body'
+    title: Annotated[str, Field(nullable=True, example='title')]
+    preview: Annotated[str, Field(nullable=True, example='preview')]
+    body: Annotated[str, Field(nullable=True, example='body')]
     image: Annotated[str, Field(max_length=500, nullable=True)]
     publishDate: datetime
 
@@ -54,9 +54,9 @@ class PostResponse(BaseModel):
 
 
 class RequestUpdatePost(BaseModel):
-    title: Annotated[Optional[str], Field(max_length=200, nullable=True)] = 'title'
-    preview: Annotated[Optional[str], Field(max_length=2000, nullable=True)] = 'preview'
-    body: Annotated[Optional[str], Field(max_length=20000, nullable=True)] = 'body'
+    title: Annotated[Optional[str], Field(max_length=200, nullable=True, example='title')]
+    preview: Annotated[Optional[str], Field(max_length=2000, nullable=True, example='preview')]
+    body: Annotated[Optional[str], Field(max_length=20000, nullable=True, example='body')]
     image: Annotated[Optional[str], Field(max_length=500, nullable=True)]
 
 
