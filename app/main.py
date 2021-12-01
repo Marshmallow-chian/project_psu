@@ -209,18 +209,12 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
          })
 def get_posts_by_pagination(page: int, count: int):
     with db_session:
-        try:
-            posts = Post.select()[::]
-            if len(posts) >= (page - 1) * count:
-                return posts[(page - 1) * count].to_dict()
-            else:
-                raise HTTPException (
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid input data",
-                )
-        except JWTError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        posts = Post.select()[::]
+        if len(posts) >= (page - 1) * count:
+            return posts[(page - 1) * count].to_dict()
+        else:
+            raise HTTPException (
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid input data",
             )
 
