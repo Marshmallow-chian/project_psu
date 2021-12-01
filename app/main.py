@@ -1,22 +1,27 @@
-import uvicorn
-from pony.orm import db_session, commit
-from app.models import db, User, Post, Comment
-from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
-                        RequestUpdatePost,
-                        UserInDB)
-from security.s_main import (get_current_active_user,
-                             ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user, create_access_token, get_password_hash)
-from app.scheme import (UserResponse)
-from security.s_scheme import Token
-from datetime import timedelta, timezone
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
-from configuration.config import secret_key, author
-from uuid import UUID
-from datetime import datetime
-from jose import JWTError
 import os
+from datetime import timedelta, datetime
+from uuid import UUID
+
 import pytz
+import uvicorn
+from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
+from fastapi.openapi.utils import get_openapi
+from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError
+from pony.orm import db_session, commit
+from starlette.types import Message
+# -----
+from app.scheme import (SuccessfulResponsePostInComments, SuccessfulResponseGetInComments, SuccessfulResponsePostInPost,
+                        SuccessfulResponseGetInPost, SuccessfulResponsePutInPost,
+                        Error422, Error403, Error404, Error401)
+from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
+                        RequestUpdatePost, UserInDB)
+# -----
+from app.models import db, User, Post, Comment
+from configuration.config import secret_key, author
+from security.s_main import (get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user,
+                             create_access_token, get_password_hash)
+from security.s_scheme import Token
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
@@ -48,13 +53,43 @@ async def start_app():
 
 # -----------------------------------------------------------------------------------------
 
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    sch = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    for path in sch["paths"]:
+        for method in sch["paths"][path]:
+            if (dict_ := sch["paths"][path][method]["responses"]).get("422"):
+                dict_['400'] = dict_.pop('422')
+    app.openapi_schema = sch
+    return app.openapi_schema
 
-@app.post("/api/v1/comments", tags=['Comments'])
+
+app.openapi = custom_openapi
+
+
+# ------------------------------------------------------------------------------------------------------------------
+
+
+@app.post("/api/v1/comments",
+          tags=['Comments'],
+          responses={
+              422: {"model": Error422, "description": "Invalid input data"},
+              200: {"model": SuccessfulResponsePostInComments, "description": "Returns the id of the created post"},
+              500: {"model": Message, "description": "Failed to create comment"}
+          })
 def creating_a_comment(comment: RequestCreateComment = Body(...)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
-        request['createDate'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+        request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
         request['post'] = comment.postId
+
         try:
             if not Post.exists(id=request["postId"]):
                 raise HTTPException(
@@ -82,25 +117,25 @@ def creating_a_comment(comment: RequestCreateComment = Body(...)):
             )
 
 
-@app.get("/api/v1/get_comments", tags=['Comments'])  # потом удалить
-def get_all_comment(id: UUID):
-    with db_session:
-        posts = Comment.get(id=id)
-        return CommentResponse.from_orm(posts)
-
-
-@app.get("/api/v1/comments", tags=['Comments'])
+@app.get("/api/v1/comments", tags=['Comments'],
+         responses={
+             422: {"model": Error422, "description": "Invalid input data"},
+             200: {"model": SuccessfulResponseGetInComments, "description": "Returns a list of comments"},
+         })
 def get_comments_by_post(id_post: UUID):
     with db_session:
         try:
-            if Post.exists(id=id_post):
-                post = Post.get(id=id_post)
-                return post.comments
+            if Comment.exists(postId=id_post):
+                comments = Comment.select()
+                l_comments = []
+                for i in comments:
+                    if i.postId == id_post:
+                        l_comments.append(CommentResponse.from_orm(i))
+                return l_comments
             else:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Data not found",
-                )
+                    detail="Post not found", )
         except JWTError:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -108,7 +143,13 @@ def get_comments_by_post(id_post: UUID):
             )
 
 
-@app.delete("/api/v1/comments/{id}", tags=['Comments'])
+@app.delete("/api/v1/comments/{id}", tags=['Comments'],
+            responses={
+                403: {"model": Error403, "description": "No access"},
+                422: {"model": Error422, "description": "Invalid comment id"},
+                200: {"model": Message, "description": "Returns the result success of execute"},
+                500: {"model": Message, "description": "Failed to delete comment"}
+            })
 def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
@@ -131,13 +172,26 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_cur
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/post", tags=['Post'])
+@app.get("/dream", tags=['Ping'])
+def ping():
+    return 'Do you have a dream?'
+
+
+@app.post("/api/v1/post", tags=['Post'],
+          responses={
+              403: {"model": Error403, "description": "No access"},
+              422: {"model": Error422, "description": "Invalid comment id"},
+              200: {"model": SuccessfulResponsePostInPost, "description": "Returns the id of the created post"},
+              500: {"model": Message, "description": "Failed to create post"}
+          })
 def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
             post_ = post.dict()
-            post_['publishDate'] = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+            post_['publishDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
             post_['author'] = User.get(nickname=current_user.nickname)
+
             new_post = Post(**post_)
             commit()
             return new_post.id
@@ -149,11 +203,11 @@ def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB 
             )
 
 
-# TODO: реализовать валидацию автора и поста через pydantic.
-#  Сделать отдельную модель для выхода OutProduct и модель для базы данных.
-
-
-@app.get("/api/v1/post", tags=['Post'])
+@app.get("/api/v1/post", tags=['Post'],
+         responses={
+             422: {"model": Error422, "description": "Invalid input data"},
+             200: {"model": SuccessfulResponseGetInPost, "description": "Returns a list of posts"},
+         })
 def get_posts_by_pagination(page: int, count: int):
     try:
         posts = Post.select()[::-1]
@@ -165,18 +219,11 @@ def get_posts_by_pagination(page: int, count: int):
         )
 
 
-@app.get("/api/v1/get_post", tags=['Post'])  # потом удалить
-def get_all_posts():
-    with db_session:
-        posts = Post.select()
-        # преобразуем запрос в SQL, а затем отправим в базу данных
-        all_posts = []
-        for i in posts:
-            all_posts.append(PostResponse.from_orm(i))
-    return all_posts
-
-
-@app.get("/api/v1/post/search", tags=['Post'])
+@app.get("/api/v1/post/search", tags=['Post'],
+         responses={
+             422: {"model": Error422, "description": "Invalid input data"},
+             200: {"model": SuccessfulResponseGetInPost, "description": "Returns a list of found posts"},
+         })
 async def search_for_posts(searchData: str):
     with db_session:
         try:
@@ -198,7 +245,12 @@ async def search_for_posts(searchData: str):
             )
 
 
-@app.get("/api/v1/post/{id}", tags=['Post'])
+@app.get("/api/v1/post/{id}", tags=['Post'],
+         responses={
+             422: {"model": Error422, "description": "Invalid input data"},
+             404: {"model": Error404, "description": "Not fount post by id"},
+             200: {"model": SuccessfulResponseGetInPost, "description": "Returns a post find by id"},
+         })
 def get_post_by_id(id: UUID):
     with db_session:
         try:
@@ -217,7 +269,13 @@ def get_post_by_id(id: UUID):
             )
 
 
-@app.put("/api/v1/post/{id}", tags=['Post'])
+@app.put("/api/v1/post/{id}", tags=['Post'],
+         responses={
+             403: {"model": Error403, "description": "No access"},
+             422: {"model": Error422, "description": "Invalid input id"},
+             200: {"model": SuccessfulResponsePutInPost, "description": "Returns updated post"},
+             500: {"model": Message, "description": "Failed to update post"}
+         })
 def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...),
                           current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
@@ -240,7 +298,13 @@ def updating_a_post_by_id(id: UUID, edit_pr: RequestUpdatePost = Body(...),
             )
 
 
-@app.delete("/api/v1/post/{id}", tags=['Post'])
+@app.delete("/api/v1/post/{id}", tags=['Post'],
+            responses={
+                403: {"model": Error403, "description": "No access"},
+                422: {"model": Error422, "description": "Invalid post id"},
+                200: {"model": Message, "description": "Returns the result success of execute"},
+                500: {"model": Message, "description": "Failed to delete post"}
+            })
 def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
@@ -262,7 +326,12 @@ def deleting_a_post_by_id(id: UUID, current_user: UserInDB = Security(get_curren
 # ----------------------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/user/auth", response_model=Token, tags=['User'])
+@app.post("/api/v1/user/auth", response_model=Token, tags=['User'],
+          responses={
+              401: {"model": Error401, "description": "Unauthorized"},
+              422: {"model": Error422, "description": "Invalid input data"},
+              200: {"model": Message, "description": "Returns the authentication token"},
+          })
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with db_session:
         try:
@@ -283,7 +352,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             )
 
 
-@app.post('/api/v1/user/reg', tags=['User'])
+@app.post('/api/v1/user/reg', tags=['User'],
+          responses={
+              401: {"model": Error401, "description": "Unauthorized"},
+              422: {"model": Error422, "description": "Invalid input data"},
+              200: {"model": Message, "description": "Returns the authentication token"},
+          })
 async def account_registration(user: RequestRegistration = Body(...)):  # любой
     with db_session:
         try:
@@ -304,16 +378,6 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create account",
             )
-
-
-@app.get('/api/user', tags=['User'])
-async def get_all_users():  # любой
-    with db_session:
-        users = User.select()  # преобразуем запрос в SQL, а затем отправим в базу данных4
-        all_users = []
-        for i in users:
-            all_users.append(UserResponse.from_orm(i))
-    return all_users
 
 
 if __name__ == "__main__":
