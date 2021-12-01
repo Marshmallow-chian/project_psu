@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from security.s_scheme import Token, TokenData
+from security.s_scheme import TokenData
 from app.scheme import UserInDB
 from pony.orm import db_session
 from app.models import User

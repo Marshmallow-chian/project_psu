@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator, Field
 from typing_extensions import Annotated
 from typing import Optional
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
 
 

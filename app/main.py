@@ -8,16 +8,13 @@ from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError
-from fastapi.responses import Response
-from pony.orm import db_session, commit, select
+from pony.orm import db_session, commit
 from starlette.types import Message
-# -----
 from app.scheme import (SuccessfulResponsePostInComments, SuccessfulResponseGetInComments, SuccessfulResponsePostInPost,
                         SuccessfulResponseGetInPost, SuccessfulResponsePutInPost,
                         Error422, Error403, Error404, Error401)
 from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, RequestCreatePost, RequestRegistration,
                         RequestUpdatePost, UserInDB)
-# -----
 from app.models import db, User, Post, Comment
 from configuration.config import secret_key, author
 from security.s_main import (get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user,
@@ -53,6 +50,7 @@ async def start_app():
 
 
 # -----------------------------------------------------------------------------------------
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -173,7 +171,6 @@ def deleting_a_comment_by_id(id: UUID, current_user: UserInDB = Security(get_cur
 # -----------------------------------------------------------------------------------------
 
 
-@app.post("/api/v1/post", tags=['Post'])
 @app.get("/dream", tags=['Ping'])
 def ping():
     return 'Do you have a dream?'
