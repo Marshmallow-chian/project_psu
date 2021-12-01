@@ -12,11 +12,6 @@ class RequestCreateComment(BaseModel):
     message: Annotated[str, Field(max_length=993)] = 'massage'
 
 
-'''class CommentsForComment(BaseModel):
-    id: UUID
-    message: str'''
-
-
 class CommentResponse(BaseModel):
     id: UUID
     postId: UUID
@@ -24,13 +19,6 @@ class CommentResponse(BaseModel):
     nickname: Annotated[str, Field(max_length=100, nullable=True)] = 'nickname'
     message: Annotated[str, Field(max_length=993, nullable=True)] = 'massage'
     createDate: Optional[datetime]
-    '''comment: CommentsForComment
-
-    @validator('comment', pre=True, allow_reuse=True)
-    def pony_set_to_list(cls, value):
-        if hasattr(value, "to_dict"):
-            value = value.to_dict()
-        return value'''
 
     class Config:
         orm_mode = True
@@ -86,6 +74,7 @@ class UserInDB(UserResponse):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
+
 class Error422(BaseModel):
     type: str
     title: str
@@ -131,6 +120,7 @@ class Error404(BaseModel):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
+
 
 class SuccessfulResponsePostInComments(BaseModel):
     id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
