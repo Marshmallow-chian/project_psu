@@ -10,6 +10,7 @@ class User(db.Entity):
     nickname = Required(str, 255, unique=True)
     hashed_password = Required(str)
     posts = Set('Post')
+    comments = Set('Comment')
 
 
 class Post(db.Entity):
@@ -28,8 +29,10 @@ class Comment(db.Entity):
     postId = Required(UUID)
     parentId = Optional(UUID)  # id комментария
     nickname = Required(str, 100)
+    user = Optional(User)
     message = Required(str, 993)
     createDate = Required(datetime)
     post = Required(Post)
+
     comments = Set('Comment', reverse='comment')
     comment = Optional('Comment', reverse='comments')

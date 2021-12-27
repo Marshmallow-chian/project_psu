@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union, Literal
 from fastapi import Depends, HTTPException, status, Security
-from fastapi.security import OAuth2PasswordBearer, SecurityScopes
+from fastapi.security import SecurityScopes, OAuth2PasswordBearer
+from starlette.requests import Request
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from security.s_scheme import TokenData
@@ -9,14 +11,27 @@ from app.scheme import UserInDB
 from pony.orm import db_session
 from app.models import User
 from pydantic import ValidationError
+from fastapi.security.utils import get_authorization_scheme_param
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/user/auth", scopes={})
 
+class MyOAuth2PasswordBearer(OAuth2PasswordBearer):
+    def __init__(self):
+        pass
+
+    async def __call__(self, request: Request) -> Optional[str]:
+        authorization: str = request.headers.get("Authorization")
+        scheme, param = get_authorization_scheme_param(authorization)
+        return param
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/user/auth", scopes={})
+oauth3_scheme = MyOAuth2PasswordBearer()
+oauth3_scheme.__dict__ = oauth2_scheme.__dict__
 
 def verify_password(plain_password, hashed_password):  # проверяет правильность пароля, True/False
     return pwd_context.verify(plain_password, hashed_password)
@@ -86,3 +101,32 @@ async def get_current_user(security_scopes: SecurityScopes, token: str = Depends
 
 async def get_current_active_user(current_user: User = Security(get_current_user)):  # UserInDB
     return current_user
+
+
+async def get_current_user_for_comments(token: str = Security(oauth3_scheme)):
+    from app.main import SECRET_KEY
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+    )
+    if token != '':
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            if username is None:
+                return credentials_exception
+            token_data = TokenData(name=username)
+        except (JWTError, ValidationError):
+            return credentials_exception
+        user = get_user(token_data.name)
+        if user is None:
+            raise credentials_exception
+        return user
+    else:
+        return None
+
+
+async def get_current_active_user_for_comments(current_user: User = Security(get_current_user_for_comments)):  # UserInDB
+    return current_user
+
+
