@@ -1,7 +1,6 @@
 import os
 from datetime import timedelta, datetime
 from uuid import UUID
-
 import pytz
 import uvicorn
 from fastapi import FastAPI, Body, Depends, status, HTTPException, Security
@@ -17,8 +16,10 @@ from app.scheme import (RequestCreateComment, CommentResponse, PostResponse, Req
 from app.models import db, User, Post, Comment
 from configuration.config import secret_key, author
 from security.s_main import (get_current_active_user, ACCESS_TOKEN_EXPIRE_MINUTES, authenticate_user,
-                             create_access_token, get_password_hash)
+                             create_access_token, get_password_hash, get_current_active_user_for_comments)
 from security.s_scheme import Token
+from fastapi.security import OAuth2PasswordBearer
+
 
 app = FastAPI()
 my_db = 'Comments_Post_User.sqlite'
@@ -71,6 +72,15 @@ app.openapi = custom_openapi
 
 # ------------------------------------------------------------------------------------------------------------------
 
+# функция с комментарием должна иметь замочек, при не авторизованном пользователи она должа требовать никнейм,
+# но длжен отсутсвовать заголовок авторизации, если авторизован, то выкидывать ошибку
+# (авторизованный пользователь не должен передавать никнейм, взятие никнейма должно происходщить из токена)
+
+# должна быть связь в бд между пользователем и коментарием, зарег пользователь должен иметь свои комментарии
+# фиксировать что такого никнейма нет в бд
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 @app.post("/api/v1/comments",
           tags=['Comments'],
@@ -79,38 +89,48 @@ app.openapi = custom_openapi
               200: {"model": SuccessfulResponsePostInComments, "description": "Returns the id of the created post"},
               500: {"model": Message, "description": "Failed to create comment"}
           })
-def creating_a_comment(comment: RequestCreateComment = Body(...)):
+def creating_a_comment(comment: RequestCreateComment = Body(...),
+                       current_user: UserInDB = Security(get_current_active_user_for_comments)):
     with db_session:
         request = comment.dict(exclude_unset=True, exclude_none=True)
 
         request['createDate'] = datetime.now(pytz.timezone('Europe/Moscow')).strftime('%Y-%m-%d %H:%M:%S')
         request['post'] = comment.postId
 
-        try:
-            if not Post.exists(id=request["postId"]):
+# TODO: Никита, следующие 6 строчек нужно вставить в какое-то другое место этой функции
+#  Условие должно проверять после проверки на наличие поста
+        if current_user is not None:  # пользователь зарегестрирован
+            request['nickname'] = current_user.nickname
+            request['user'] = User.get(nickname=current_user.nickname)
+        else:                         # пользователь не зарегестрирован
+            request['nickname'] = comment.nickname
+            request['user'] = None
+
+        # try:
+        if not Post.exists(id=request["postId"]):  # если пост не найден
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found",
+            )
+        elif request.get('parentId') is not None:  # ответ на комментарий
+            if not Comment.exists(id=request['parentId']):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Post not found",
+                    detail="Invalid input data",
                 )
-            elif request.get('parentId') is not None:  # ответ на комментарий
-                if not Comment.exists(id=request['parentId']):
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Invalid input data",
-                    )
-                request['comment'] = comment.parentId
-                comment = Comment(**request)
-                commit()
-                return CommentResponse.from_orm(comment)
-
+            request['comment'] = comment.parentId
             comment = Comment(**request)
             commit()
             return CommentResponse.from_orm(comment)
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create comment",
-            )
+
+        comment = Comment(**request)
+        commit()
+        return CommentResponse.from_orm(comment)
+        # except Exception:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #         detail="Failed to create comment",
+        #     )
 
 
 @app.get("/api/v1/comments", tags=['Comments'],
@@ -180,7 +200,7 @@ def ping():
               200: {"model": SuccessfulResponsePostInPost, "description": "Returns the id of the created post"},
               500: {"model": Message, "description": "Failed to create post"}
           })
-def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
+async def creating_a_post(post: RequestCreatePost = Body(...), current_user: UserInDB = Security(get_current_active_user)):
     with db_session:
         try:
             post_ = post.dict()
@@ -209,7 +229,7 @@ def get_posts_by_pagination(page: int, count: int):
         if len(posts) >= (page - 1) * count:
             return posts[(page - 1) * count].to_dict()
         else:
-            raise HTTPException (
+            raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid input data",
             )
@@ -340,11 +360,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
             access_token = create_access_token(data={"sub": user.nickname}, expires_delta=access_token_expires)
             return {"access_token": access_token, "token_type": "bearer"}
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid input data",
-            )
+        except Exception as e:
+            return e
 
 
 @app.post('/api/v1/user/reg', tags=['User'],
@@ -357,6 +374,7 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
     with db_session:
         try:
             n_user = user.dict()
+            print(User.exists(nickname=user.nickname))
             if User.exists(nickname=user.nickname):
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -368,12 +386,8 @@ async def account_registration(user: RequestRegistration = Body(...)):  # люб
             access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)  # 30 min
             access_token = create_access_token(data={"sub": user_['nickname']}, expires_delta=access_token_expires)
             return access_token
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create account",
-            )
-
+        except Exception as e:
+            return e
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="localhost", port=8000, reload=True)
